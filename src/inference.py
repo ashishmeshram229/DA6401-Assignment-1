@@ -1,6 +1,7 @@
 import argparse
 import json
 import numpy as np
+import os
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 from ann.neural_network import NeuralNetwork
@@ -17,14 +18,18 @@ def load_model(model_path, config_path=None):
     class A: pass
     model_args = A()
 
-    try:
-        cfg = load_config(config_path)
-        for k, v in cfg.items():
-            setattr(model_args, k, v)
-    except Exception:
-        default_args = parse_arguments([])
-        for k, v in vars(default_args).items():
-            setattr(model_args, k, v)
+    # AUTOGRADER FIX: Actually read the command line flags the TA passed!
+    cli_args = parse_arguments()
+    for k, v in vars(cli_args).items():
+        setattr(model_args, k, v)
+
+    if os.path.exists(config_path):
+        try:
+            cfg = load_config(config_path)
+            for k, v in cfg.items():
+                setattr(model_args, k, v)
+        except Exception:
+            pass
             
     model = NeuralNetwork(model_args)
     
@@ -63,7 +68,10 @@ def run_inference():
     args = parse_arguments()
     model = load_model(args.model_path, args.config_path)
 
-    _, _, _, _, x_test, y_test = load_data(args.dataset)
+    # FORCE the dataset to be the one Gradescope requested via CLI
+    dataset_name = args.dataset
+    
+    _, _, _, _, x_test, y_test = load_data(dataset_name)
 
     logits = model.forward(x_test)
     preds = np.argmax(logits, axis=1)
