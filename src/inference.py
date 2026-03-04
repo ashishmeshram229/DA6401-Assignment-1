@@ -18,7 +18,7 @@ def load_config(config_path):
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-d", "--dataset", type=str, default="fashion_mnist",
+    parser.add_argument("-d", "--dataset", type=str, default="mnist",
                         choices=["mnist", "fashion_mnist"])
     parser.add_argument("-e", "--epochs", type=int, default=20)
     parser.add_argument("-b", "--batch_size", type=int, default=64)
@@ -41,8 +41,8 @@ def parse_args():
 
 
     # Used specifically for inference execution
-    parser.add_argument("--model_path", type=str, default="best_model.npy")
-    parser.add_argument("--config_path", type=str, default="best_config.json")
+    parser.add_argument("--model_path", type=str, default="src/best_model.npy")
+    parser.add_argument("--config_path", type=str, default="src/best_config.json")
 
 
 
@@ -108,7 +108,7 @@ def run_inference():
     f1 = f1_score(y_test, preds, average="macro", zero_division=0)
 
     print("\nTest Set Evaluation ")
-    
+
     print(f"Accuracy : {acc:.4f}")
     print(f"Precision: {prec:.4f}")
     print(f"Recall   : {rec:.4f}")
