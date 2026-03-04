@@ -55,8 +55,8 @@ def parse_arguments(args_list=None):
     parser.add_argument("-wg", "--wandb_group", type=str, default="general")
 
     # Used specifically for inference execution
-    parser.add_argument("--model_path", type=str, default="src/best_model.npy")
-    parser.add_argument("--config_path", type=str, default="src/best_config.json")
+    parser.add_argument("--model_path", type=str, default="best_model.npy")
+    parser.add_argument("--config_path", type=str, default="best_config.json")
 
     # Allows Gradescope to inject arguments directly if it chooses to
     if args_list is not None:

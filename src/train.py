@@ -38,8 +38,8 @@ def parse_args():
                         help="Group name for W&B logging")
 
     # Extra args to ensure identical CLI with inference.py
-    parser.add_argument("--model_path", type=str, default="src/best_model.npy")
-    parser.add_argument("--config_path", type=str, default="src/best_config.json")
+    parser.add_argument("--model_path", type=str, default="best_model.npy")
+    parser.add_argument("--config_path", type=str, default="best_config.json")
 
     return parser.parse_args()
 
