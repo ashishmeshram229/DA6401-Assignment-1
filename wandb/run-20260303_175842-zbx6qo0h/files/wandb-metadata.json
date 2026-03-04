@@ -1,0 +1,32 @@
+{
+  "os": "macOS-26.3-arm64-arm-64bit-Mach-O",
+  "python": "CPython 3.13.5",
+  "startedAt": "2026-03-03T12:28:42.056712Z",
+  "program": "/Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1/src/sweep.py",
+  "codePath": "src/sweep.py",
+  "codePathLocal": "src/sweep.py",
+  "email": "ashishmeshram229@gmail.com",
+  "root": "/Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1",
+  "host": "Ashishs-MacBook-Air.local",
+  "executable": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+  "cpu_count": 10,
+  "cpu_count_logical": 10,
+  "disk": {
+    "/": {
+      "total": "494384795648",
+      "used": "275129184256"
+    }
+  },
+  "memory": {
+    "total": "17179869184"
+  },
+  "apple": {
+    "name": "Apple M4",
+    "ecpuCores": 6,
+    "pcpuCores": 4,
+    "gpuCores": 10,
+    "memoryGb": 16,
+    "ramTotalBytes": "17179869184"
+  },
+  "writerId": "w4y1d5vecffxqnow18q2uj3q9rbmpg1l"
+}

@@ -1,0 +1,75 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            slajat69gkm92j0nyrvjfedd559b6wxs:
+                apple:
+                    ecpuCores: 6
+                    gpuCores: 10
+                    memoryGb: 16
+                    name: Apple M4
+                    pcpuCores: 4
+                    ramTotalBytes: "17179869184"
+                codePath: src/sweep.py
+                codePathLocal: src/sweep.py
+                cpu_count: 10
+                cpu_count_logical: 10
+                disk:
+                    /:
+                        total: "494384795648"
+                        used: "275135197184"
+                email: ashishmeshram229@gmail.com
+                executable: /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+                host: Ashishs-MacBook-Air.local
+                memory:
+                    total: "17179869184"
+                os: macOS-26.3-arm64-arm-64bit-Mach-O
+                program: /Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1/src/sweep.py
+                python: CPython 3.13.5
+                root: /Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1
+                startedAt: "2026-03-03T12:56:27.992540Z"
+                writerId: slajat69gkm92j0nyrvjfedd559b6wxs
+        m: []
+        python_version: 3.13.5
+        t:
+            "1":
+                - 2
+                - 3
+                - 5
+                - 53
+                - 105
+            "2":
+                - 2
+                - 3
+                - 5
+                - 53
+                - 105
+            "3":
+                - 2
+                - 14
+            "4": 3.13.5
+            "5": 0.25.0
+            "12": 0.25.0
+            "13": darwin-arm64
+activation:
+    value: sigmoid
+batch_size:
+    value: 32
+dataset:
+    value: mnist
+epochs:
+    value: 20
+hidden_size:
+    value: 128
+learning_rate:
+    value: 0.012884270874644391
+loss:
+    value: mean_squared_error
+num_layers:
+    value: 4
+optimizer:
+    value: nag
+weight_decay:
+    value: 1e-05
+weight_init:
+    value: xavier

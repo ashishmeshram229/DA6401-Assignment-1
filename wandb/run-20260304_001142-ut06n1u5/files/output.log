@@ -1,0 +1,15 @@
+
+Training MLP | dataset=mnist | optimizer=rmsprop | epochs=10
+Epoch 01 | Train Loss=0.3219 | Val Loss=0.1539 | Val Acc=0.9568 | Test F1=0.9510
+Epoch 02 | Train Loss=0.1446 | Val Loss=0.1170 | Val Acc=0.9683 | Test F1=0.9630
+Epoch 03 | Train Loss=0.1078 | Val Loss=0.1115 | Val Acc=0.9662 | Test F1=0.9626
+Epoch 04 | Train Loss=0.0877 | Val Loss=0.1024 | Val Acc=0.9705 | Test F1=0.9694
+Epoch 05 | Train Loss=0.0746 | Val Loss=0.0860 | Val Acc=0.9758 | Test F1=0.9732
+Epoch 06 | Train Loss=0.0629 | Val Loss=0.1056 | Val Acc=0.9697 | Test F1=0.9704
+Epoch 07 | Train Loss=0.0548 | Val Loss=0.0859 | Val Acc=0.9755 | Test F1=0.9714
+Epoch 08 | Train Loss=0.0483 | Val Loss=0.0886 | Val Acc=0.9753 | Test F1=0.9735
+Epoch 09 | Train Loss=0.0434 | Val Loss=0.0958 | Val Acc=0.9750 | Test F1=0.9713
+Epoch 10 | Train Loss=0.0378 | Val Loss=0.1001 | Val Acc=0.9742 | Test F1=0.9720
+
+Best Test F1-Score: 0.9734964911510083
+Saved best_model.npy and best_config.json

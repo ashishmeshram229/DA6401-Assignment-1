@@ -1,0 +1,12 @@
+{"time":"2026-03-03T18:01:49.483614+05:30","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-03-03T18:01:49.932277+05:30","level":"INFO","msg":"stream: created new stream","id":"viacwkzs"}
+{"time":"2026-03-03T18:01:49.932453+05:30","level":"INFO","msg":"handler: started","stream_id":"viacwkzs"}
+{"time":"2026-03-03T18:01:49.932668+05:30","level":"INFO","msg":"stream: started","id":"viacwkzs"}
+{"time":"2026-03-03T18:01:49.932679+05:30","level":"INFO","msg":"writer: started","stream_id":"viacwkzs"}
+{"time":"2026-03-03T18:01:49.932684+05:30","level":"INFO","msg":"sender: started","stream_id":"viacwkzs"}
+{"time":"2026-03-03T18:02:13.493756+05:30","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-03-03T18:02:13.952209+05:30","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-03-03T18:02:13.957119+05:30","level":"INFO","msg":"stream: closing","id":"viacwkzs"}
+{"time":"2026-03-03T18:02:13.957152+05:30","level":"INFO","msg":"handler: closed","stream_id":"viacwkzs"}
+{"time":"2026-03-03T18:02:13.957672+05:30","level":"INFO","msg":"sender: closed","stream_id":"viacwkzs"}
+{"time":"2026-03-03T18:02:13.957702+05:30","level":"INFO","msg":"stream: closed","id":"viacwkzs"}

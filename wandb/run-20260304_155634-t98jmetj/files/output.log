@@ -1,0 +1,11 @@
+
+Training MLP | dataset=mnist | optimizer=rmsprop | epochs=20
+Epoch 01 | Train Loss=2.8853 | Val Loss=1.3085 | Val Acc=0.7398 | Test F1=0.7459
+Traceback (most recent call last):
+  File "/Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1/src/train.py", line 150, in <module>
+    train()
+    ~~~~~^^
+  File "/Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1/src/train.py", line 131, in train
+    "layer_1_activations": wandb.Histogram(model.layers[0].A)
+                                           ^^^^^^^^^^^^^^^^^
+AttributeError: 'Layer' object has no attribute 'A'. Did you mean: 'a'?

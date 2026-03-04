@@ -1,0 +1,12 @@
+{"time":"2026-03-03T18:23:24.462075+05:30","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-03-03T18:23:24.986994+05:30","level":"INFO","msg":"stream: created new stream","id":"nauksbct"}
+{"time":"2026-03-03T18:23:24.987044+05:30","level":"INFO","msg":"handler: started","stream_id":"nauksbct"}
+{"time":"2026-03-03T18:23:24.987233+05:30","level":"INFO","msg":"stream: started","id":"nauksbct"}
+{"time":"2026-03-03T18:23:24.987241+05:30","level":"INFO","msg":"sender: started","stream_id":"nauksbct"}
+{"time":"2026-03-03T18:23:24.987246+05:30","level":"INFO","msg":"writer: started","stream_id":"nauksbct"}
+{"time":"2026-03-03T18:23:30.799132+05:30","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-03-03T18:23:31.814755+05:30","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-03-03T18:23:31.818973+05:30","level":"INFO","msg":"stream: closing","id":"nauksbct"}
+{"time":"2026-03-03T18:23:31.819013+05:30","level":"INFO","msg":"handler: closed","stream_id":"nauksbct"}
+{"time":"2026-03-03T18:23:31.819226+05:30","level":"INFO","msg":"sender: closed","stream_id":"nauksbct"}
+{"time":"2026-03-03T18:23:31.819242+05:30","level":"INFO","msg":"stream: closed","id":"nauksbct"}

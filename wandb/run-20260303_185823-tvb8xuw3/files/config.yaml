@@ -1,0 +1,105 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            zb8eu1hb4ngxdsh6obtglubah3cdzj1t:
+                apple:
+                    ecpuCores: 6
+                    gpuCores: 10
+                    memoryGb: 16
+                    name: Apple M4
+                    pcpuCores: 4
+                    ramTotalBytes: "17179869184"
+                args:
+                    - -d
+                    - mnist
+                    - -nhl
+                    - "2"
+                    - -sz
+                    - "64"
+                    - "64"
+                    - -lr
+                    - "0.1"
+                    - -a
+                    - tanh
+                    - tanh
+                    - -wg
+                    - 2.5_Dead_Neurons
+                    - -wp
+                    - da6401_assignment_1
+                codePath: src/train.py
+                codePathLocal: src/train.py
+                cpu_count: 10
+                cpu_count_logical: 10
+                disk:
+                    /:
+                        total: "494384795648"
+                        used: "275398934528"
+                email: ashishmeshram229@gmail.com
+                executable: /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+                host: Ashishs-MacBook-Air.local
+                memory:
+                    total: "17179869184"
+                os: macOS-26.3-arm64-arm-64bit-Mach-O
+                program: /Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1/src/train.py
+                python: CPython 3.13.5
+                root: /Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1
+                startedAt: "2026-03-03T13:28:23.909513Z"
+                writerId: zb8eu1hb4ngxdsh6obtglubah3cdzj1t
+        m: []
+        python_version: 3.13.5
+        t:
+            "1":
+                - 2
+                - 3
+                - 5
+                - 53
+                - 105
+            "2":
+                - 2
+                - 3
+                - 5
+                - 53
+                - 105
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.13.5
+            "5": 0.25.0
+            "12": 0.25.0
+            "13": darwin-arm64
+activation:
+    value:
+        - tanh
+        - tanh
+batch_size:
+    value: 64
+config_path:
+    value: best_config.json
+dataset:
+    value: mnist
+epochs:
+    value: 20
+hidden_size:
+    value:
+        - 64
+        - 64
+learning_rate:
+    value: 0.1
+loss:
+    value: cross_entropy
+model_path:
+    value: best_model.npy
+num_layers:
+    value: 2
+optimizer:
+    value: rmsprop
+wandb_group:
+    value: 2.5_Dead_Neurons
+wandb_project:
+    value: da6401_assignment_1
+weight_decay:
+    value: 0
+weight_init:
+    value: xavier

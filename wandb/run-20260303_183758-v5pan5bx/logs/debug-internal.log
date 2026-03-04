@@ -1,0 +1,12 @@
+{"time":"2026-03-03T18:37:58.973764+05:30","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-03-03T18:37:59.553678+05:30","level":"INFO","msg":"stream: created new stream","id":"v5pan5bx"}
+{"time":"2026-03-03T18:37:59.553732+05:30","level":"INFO","msg":"handler: started","stream_id":"v5pan5bx"}
+{"time":"2026-03-03T18:37:59.5539+05:30","level":"INFO","msg":"stream: started","id":"v5pan5bx"}
+{"time":"2026-03-03T18:37:59.553908+05:30","level":"INFO","msg":"writer: started","stream_id":"v5pan5bx"}
+{"time":"2026-03-03T18:37:59.553909+05:30","level":"INFO","msg":"sender: started","stream_id":"v5pan5bx"}
+{"time":"2026-03-03T18:38:32.307687+05:30","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-03-03T18:38:32.713405+05:30","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-03-03T18:38:32.717994+05:30","level":"INFO","msg":"stream: closing","id":"v5pan5bx"}
+{"time":"2026-03-03T18:38:32.718024+05:30","level":"INFO","msg":"handler: closed","stream_id":"v5pan5bx"}
+{"time":"2026-03-03T18:38:32.718502+05:30","level":"INFO","msg":"sender: closed","stream_id":"v5pan5bx"}
+{"time":"2026-03-03T18:38:32.718521+05:30","level":"INFO","msg":"stream: closed","id":"v5pan5bx"}

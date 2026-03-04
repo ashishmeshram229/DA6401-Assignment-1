@@ -1,0 +1,62 @@
+{
+  "os": "macOS-26.3-arm64-arm-64bit-Mach-O",
+  "python": "CPython 3.13.5",
+  "startedAt": "2026-03-03T13:30:52.026274Z",
+  "args": [
+    "-d",
+    "fashion_mnist",
+    "-e",
+    "15",
+    "-b",
+    "64",
+    "-l",
+    "cross_entropy",
+    "-o",
+    "rmsprop",
+    "-lr",
+    "0.001",
+    "-nhl",
+    "3",
+    "-sz",
+    "128",
+    "128",
+    "128",
+    "-a",
+    "relu",
+    "relu",
+    "relu",
+    "-wi",
+    "xavier",
+    "-wg",
+    "2.10_Fashion_Transfer",
+    "-wp",
+    "da6401_assignment_1"
+  ],
+  "program": "/Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1/src/train.py",
+  "codePath": "src/train.py",
+  "codePathLocal": "src/train.py",
+  "email": "ashishmeshram229@gmail.com",
+  "root": "/Users/ashishmeshram/Documents/IITM - ACADEMICS/SEM2/COURSES/DL/ASSIGNMENT1/da6401_assignment_1",
+  "host": "Ashishs-MacBook-Air.local",
+  "executable": "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+  "cpu_count": 10,
+  "cpu_count_logical": 10,
+  "disk": {
+    "/": {
+      "total": "494384795648",
+      "used": "275427643392"
+    }
+  },
+  "memory": {
+    "total": "17179869184"
+  },
+  "apple": {
+    "name": "Apple M4",
+    "ecpuCores": 6,
+    "pcpuCores": 4,
+    "gpuCores": 10,
+    "memoryGb": 16,
+    "ramTotalBytes": "17179869184"
+  },
+  "writerId": "n61i4yvadi4ipqah80srqqpj6gxjkddv"
+}

@@ -1,0 +1,25 @@
+
+Training MLP | dataset=mnist | optimizer=rmsprop | epochs=20
+Epoch 01 | Train Loss=3.1212 | Val Loss=1.7983 | Val Acc=0.2918 | Test F1=0.2052
+Epoch 02 | Train Loss=1.6274 | Val Loss=3.5138 | Val Acc=0.2852 | Test F1=0.2197
+Epoch 03 | Train Loss=1.7517 | Val Loss=1.8588 | Val Acc=0.2355 | Test F1=0.1461
+Epoch 04 | Train Loss=1.7753 | Val Loss=1.8704 | Val Acc=0.2662 | Test F1=0.1697
+Epoch 05 | Train Loss=1.6807 | Val Loss=1.7066 | Val Acc=0.2820 | Test F1=0.1714
+Epoch 06 | Train Loss=1.8278 | Val Loss=1.9278 | Val Acc=0.2002 | Test F1=0.0645
+Epoch 07 | Train Loss=1.9404 | Val Loss=1.9370 | Val Acc=0.2008 | Test F1=0.0682
+Epoch 08 | Train Loss=1.9385 | Val Loss=1.9688 | Val Acc=0.1913 | Test F1=0.0675
+Epoch 09 | Train Loss=1.9469 | Val Loss=1.9060 | Val Acc=0.2062 | Test F1=0.0707
+Epoch 10 | Train Loss=1.9097 | Val Loss=1.9558 | Val Acc=0.1615 | Test F1=0.0558
+Epoch 11 | Train Loss=1.9081 | Val Loss=1.9192 | Val Acc=0.1920 | Test F1=0.0697
+Epoch 12 | Train Loss=1.8985 | Val Loss=1.8895 | Val Acc=0.1820 | Test F1=0.0637
+Epoch 13 | Train Loss=1.8951 | Val Loss=2.0049 | Val Acc=0.1787 | Test F1=0.0589
+Epoch 14 | Train Loss=1.9403 | Val Loss=1.8794 | Val Acc=0.2030 | Test F1=0.0711
+Epoch 15 | Train Loss=1.9902 | Val Loss=1.9836 | Val Acc=0.2058 | Test F1=0.0730
+Epoch 16 | Train Loss=1.9050 | Val Loss=1.8534 | Val Acc=0.1872 | Test F1=0.0675
+Epoch 17 | Train Loss=1.8665 | Val Loss=1.8994 | Val Acc=0.1788 | Test F1=0.0607
+Epoch 18 | Train Loss=1.9666 | Val Loss=1.8977 | Val Acc=0.2100 | Test F1=0.0706
+Epoch 19 | Train Loss=1.9224 | Val Loss=1.9018 | Val Acc=0.2030 | Test F1=0.0760
+Epoch 20 | Train Loss=1.9101 | Val Loss=1.8941 | Val Acc=0.2107 | Test F1=0.0731
+
+Best Test F1-Score: 0.21972960636006067
+Saved best_model.npy and best_config.json

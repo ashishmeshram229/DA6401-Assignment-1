@@ -1,0 +1,24 @@
+{
+  "dataset": "mnist",
+  "epochs": 20,
+  "batch_size": 64,
+  "loss": "cross_entropy",
+  "optimizer": "rmsprop",
+  "learning_rate": 0.1,
+  "weight_decay": 0.0,
+  "num_layers": 2,
+  "hidden_size": [
+    64,
+    64
+  ],
+  "activation": [
+    "tanh",
+    "tanh"
+  ],
+  "weight_init": "xavier",
+  "wandb_project": "da6401_assignment_1",
+  "wandb_group": "2.5_final_dead_neuron",
+  "model_path": "best_model.npy",
+  "config_path": "best_config.json",
+  "best_test_f1": 0.8238121202647264
+}
