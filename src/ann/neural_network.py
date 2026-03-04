@@ -9,6 +9,9 @@ class NeuralNetwork:
 
     def __init__(self, args):
         
+        if not hasattr(args, 'hidden_size') and hasattr(args, 'sz'):
+            args.hidden_size = args.sz
+        
         self.loss_fn, self.loss_grad_fn = get_loss(args.loss)
         self.layers = []
         input_dim = 28 * 28  # MNIST/Fashion-MNIST dimension
