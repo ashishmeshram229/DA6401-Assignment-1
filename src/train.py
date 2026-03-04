@@ -90,16 +90,15 @@ def train():
             wandb.log({"first_layer_grad_norm": first_layer_grad_norm})
 
 
-            # CUSTOM LOGGING for 2.9: Log individual neuron gradients for the first 50 iterations
-            # We track the gradient of the first 5 weights connected to the first input pixel
+            # CUSTOM LOGGING for 2.9: Log individual neuron gradient norms
             if ep == 1 and batches < 50:
-                grad_W = model.layers[0].grad_W
+                grad_W = model.layers[0].grad_W # Shape is (784, 64)
                 wandb.log({
-                    "neuron_1_grad": grad_W[0, 0],
-                    "neuron_2_grad": grad_W[0, 1],
-                    "neuron_3_grad": grad_W[0, 2],
-                    "neuron_4_grad": grad_W[0, 3],
-                    "neuron_5_grad": grad_W[0, 4],
+                    "neuron_1_grad_norm": np.linalg.norm(grad_W[:, 0]),
+                    "neuron_2_grad_norm": np.linalg.norm(grad_W[:, 1]),
+                    "neuron_3_grad_norm": np.linalg.norm(grad_W[:, 2]),
+                    "neuron_4_grad_norm": np.linalg.norm(grad_W[:, 3]),
+                    "neuron_5_grad_norm": np.linalg.norm(grad_W[:, 4]),
                     "batch_step": batches
                 })
                 

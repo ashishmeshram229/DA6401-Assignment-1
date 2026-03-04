@@ -1,44 +1,3 @@
-import numpy as np
-
-import wandb
-from ann.neural_network import NeuralNetwork
-
-from data_utils import load_data, one_hot, get_batches
-
-# Sweep Configuration
-
-
-sweep_config = {
-    "method": "bayes",
-    "metric": {
-        "name": "val_acc",
-        "goal": "maximize"
-    },
-    
-
-    "parameters": {
-        "epochs":        {"values": [8, 10, 20]},
-        "batch_size":    {"values": [32, 64, 128]},
-        "optimizer":     {"values": ["sgd", "momentum", "nag", "rmsprop"]},
-        "learning_rate": {
-            "distribution": "log_uniform_values",
-            "min": 1e-4,
-            "max": 1e-1
-        },
-
-
-        "num_layers":   {"values": [2, 3, 4]},
-        "hidden_size":  {"values": [64, 128, 256]},
-        "activation":   {"values": ["relu", "tanh", "sigmoid"]},
-        "weight_init":  {"values": ["random", "xavier"]},
-        "weight_decay": {"values": [0.0, 1e-5, 1e-4]},
-        "loss":         {"values": ["cross_entropy", "mean_squared_error"]},
-        "dataset":      {"value": "mnist"}
-    }
-}
-
-
-
 def sweep_train():
     run = wandb.init()
     c = wandb.config
@@ -106,24 +65,3 @@ def sweep_train():
             "val_acc": val_acc,
             "test_acc": test_acc
         })
-
-
-def run_sweep():
-
-
-    sweep_id = wandb.sweep(
-        sweep_config,
-        project="da6401_assignment_1"
-    )
-
-
-    wandb.agent(
-        sweep_id,
-        function=sweep_train,
-        count=100
-    )
-
-
-
-if __name__ == "__main__":
-    run_sweep()
