@@ -41,7 +41,10 @@ def parse_arguments():
     parser.add_argument("--model_path", type=str, default="src/best_model.npy")
     parser.add_argument("--config_path", type=str, default="src/best_config.json")
 
+    if args_list is not None:
+        return parser.parse_args(args_list)
     return parser.parse_args()
+    
 
 
 def run_inference():
