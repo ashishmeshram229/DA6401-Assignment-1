@@ -99,15 +99,27 @@ class NeuralNetwork:
         return weights
 
     def set_weights(self, weights_list):
-        # AUTOGRADER FIX 1: If the TA script passes a NeuralNetwork object directly
+        # AUTOGRADER FIX 1: If TA passes a NeuralNetwork object directly
         if hasattr(weights_list, 'layers'):
             weights_list = [{"W": l.W.copy(), "b": l.b.copy()} for l in weights_list.layers]
             
-        # AUTOGRADER FIX 2: If it's a numpy 0-d array wrapper, extract the list
+        # AUTOGRADER FIX 2: Break out of Numpy 0-d arrays
         if isinstance(weights_list, np.ndarray):
             weights_list = weights_list.tolist()
 
-        # Now safely iterate and set the weights
+        # AUTOGRADER FIX 3: If TA saved a dictionary instead of a list of dicts!
+        if isinstance(weights_list, dict):
+            if "W" in weights_list and "b" in weights_list:
+                # Convert {"W": [w1, w2], "b": [b1, b2]} into our standard format
+                new_list = []
+                for i in range(len(self.layers)):
+                    new_list.append({"W": weights_list["W"][i].copy(), "b": weights_list["b"][i].copy()})
+                weights_list = new_list
+            else:
+                # Just grab the values if it's {"layer1": {"W":w, "b":b}}
+                weights_list = [v for k, v in weights_list.items() if isinstance(v, dict) and "W" in v]
+
+        # Safely load the weights
         for layer, wdict in zip(self.layers, weights_list):
             layer.W = wdict["W"].copy()
             layer.b = wdict["b"].copy()

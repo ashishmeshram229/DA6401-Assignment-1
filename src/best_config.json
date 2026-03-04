@@ -1,13 +1,14 @@
 {
-  "dataset": "fashion_mnist",
-  "epochs": 20,
+  "dataset": "mnist",
+  "epochs": 35,
   "batch_size": 64,
   "loss": "cross_entropy",
-  "optimizer": "nag",
+  "optimizer": "rmsprop",
   "learning_rate": 0.001,
-  "weight_decay": 0.0,
-  "num_layers": 3,
+  "weight_decay": 0.0005,
+  "num_layers": 4,
   "hidden_size": [
+    128,
     128,
     128,
     128
@@ -15,12 +16,13 @@
   "activation": [
     "relu",
     "relu",
+    "relu",
     "relu"
   ],
   "weight_init": "xavier",
   "wandb_project": "da6401_assignment_1",
-  "wandb_group": "2.10_Transfer",
+  "wandb_group": "2.11_Best_Model",
   "model_path": "best_model.npy",
   "config_path": "best_config.json",
-  "best_test_f1": 0.8678026760926494
+  "best_test_f1": 0.9800158239205233
 }
