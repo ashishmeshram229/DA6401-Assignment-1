@@ -175,28 +175,28 @@ class NeuralNetwork:
     # ---------------------------------------------------------
     # universal weight loader
     # ---------------------------------------------------------
-def set_weights(self, weights):
+    def set_weights(self, weights):
 
-    
+        import numpy as np
 
-    if isinstance(weights, np.ndarray):
-        weights = weights.item()
+        if isinstance(weights, np.ndarray):
+            weights = weights.item()
 
-    for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers):
 
-        if f"W{i}" in weights:
-            layer.W = weights[f"W{i}"].copy()
-            layer.b = weights[f"b{i}"].copy()
+            if f"W{i}" in weights:
+                layer.W = weights[f"W{i}"].copy()
+                layer.b = weights[f"b{i}"].copy()
 
-        elif str(i) in weights:
-            layer.W = weights[str(i)]["W"].copy()
-            layer.b = weights[str(i)]["b"].copy()
+            elif str(i) in weights:
+                layer.W = weights[str(i)]["W"].copy()
+                layer.b = weights[str(i)]["b"].copy()
 
-        elif i in weights:
-            layer.W = weights[i]["W"].copy()
-            layer.b = weights[i]["b"].copy()
+            elif i in weights:
+                layer.W = weights[i]["W"].copy()
+                layer.b = weights[i]["b"].copy()
 
-        else:
-            raise KeyError(
+            else:
+                raise KeyError(
                 f"Layer {i} not found in weight dict. Keys: {list(weights.keys())}"
-            )
+                )
