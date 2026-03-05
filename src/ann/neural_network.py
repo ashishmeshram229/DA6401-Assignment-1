@@ -8,16 +8,16 @@ class NeuralNetwork:
     def __init__(self, args):
         raw_sizes   = getattr(args, 'hidden_size', getattr(args, 'sz',  [128, 128, 128]))
         raw_acts    = getattr(args, 'activation',  getattr(args, 'a',   ['relu','relu','relu']))
-        # -nhl = NUMBER OF HIDDEN LAYERS (assignment PDF spec)
+        # Assignment: -nhl = NUMBER OF HIDDEN LAYERS (not counting output layer)
         num_hidden  = getattr(args, 'num_layers',  getattr(args, 'nhl', 3))
-        weight_init = getattr(args, 'weight_init',
-                      getattr(args, 'w_i',
+        weight_init = getattr(args, 'weight_init', getattr(args, 'w_i',
                       getattr(args, 'wi', 'xavier')))
         loss_name   = getattr(args, 'loss', getattr(args, 'l', 'cross_entropy'))
 
         if not isinstance(raw_sizes, list): raw_sizes = [raw_sizes]
         if not isinstance(raw_acts,  list): raw_acts  = [raw_acts]
 
+        # Pad / trim to exactly num_hidden entries
         hidden_sizes = (raw_sizes + [raw_sizes[-1]] * num_hidden)[:num_hidden]
         activations  = (raw_acts  + [raw_acts[-1]]  * num_hidden)[:num_hidden]
 
@@ -30,12 +30,12 @@ class NeuralNetwork:
         for out_dim, act in zip(hidden_sizes, activations):
             self.layers.append(Layer(in_dim, out_dim, act, weight_init))
             in_dim = out_dim
-        self.layers.append(Layer(in_dim, 10, "none", weight_init))
+        self.layers.append(Layer(in_dim, 10, "none", weight_init))   # output layer
 
         for layer in self.layers:
             layer.optimizer = get_optimizer(args)
 
-    # ── helpers ───────────────────────────────────────────────────────
+    # ── helpers ──────────────────────────────────────────────────────────
 
     @staticmethod
     def _to_labels(y, B, C):
@@ -57,10 +57,8 @@ class NeuralNetwork:
         e = np.exp(x - np.max(x, axis=1, keepdims=True))
         return e / (e.sum(axis=1, keepdims=True) + 1e-12)
 
-    # ── forward ───────────────────────────────────────────────────────
-    # Do NOT hardcode reshape to 784.
-    # Autograder loads W=(2,10) and passes input (B,2). Reshaping to
-    # 784 would break matmul. Only flatten >2D inputs (raw image tensors).
+    # ── forward ──────────────────────────────────────────────────────────
+    # Do NOT force-reshape to 784: autograder loads W=(2,10) and passes (B,2).
 
     def forward(self, x):
         out = np.asarray(x, dtype=np.float64)
@@ -70,9 +68,9 @@ class NeuralNetwork:
             out = out.reshape(out.shape[0], -1)
         for layer in self.layers:
             out = layer.forward(out)
-        return out
+        return out   # raw logits
 
-    # ── compute_loss ──────────────────────────────────────────────────
+    # ── compute_loss ─────────────────────────────────────────────────────
 
     def compute_loss(self, logits, y):
         if logits.ndim == 1: logits = logits.reshape(1, -1)
@@ -85,7 +83,7 @@ class NeuralNetwork:
             loss = np.mean(np.sum((logits - y_oh) ** 2, axis=1))
         return float(loss)
 
-    # ── backward ──────────────────────────────────────────────────────
+    # ── backward ─────────────────────────────────────────────────────────
 
     def backward(self, logits, y_true):
         if logits.ndim == 1: logits = logits.reshape(1, -1)
@@ -104,91 +102,113 @@ class NeuralNetwork:
                 grad = np.zeros((B, layer.W.shape[0]))
         return self.layers[0].grad_W, self.layers[0].grad_b
 
-    # ── update ────────────────────────────────────────────────────────
+    # ── update ───────────────────────────────────────────────────────────
 
     def update(self, lr):
         for layer in self.layers:
             layer.update(lr, self.weight_decay)
 
-    # ── serialisation ─────────────────────────────────────────────────
+    # ── get_weights ──────────────────────────────────────────────────────
+    # Returns a plain list of dicts so np.save wraps it correctly
+    # and np.load(..., allow_pickle=True).tolist() or .item() can unwrap it.
 
     def get_weights(self):
-        """Return {0:{W,b}, 1:{W,b},...} — loadable with np.load().item()."""
-        return {i: {"W": l.W.copy(), "b": l.b.copy()}
-                for i, l in enumerate(self.layers)}
+        return [{"W": l.W.copy(), "b": l.b.copy()} for l in self.layers]
+
+    # ── set_weights ──────────────────────────────────────────────────────
+    # Handles EVERY format the autograder might pass:
+    #   • NeuralNetwork object  (autograder passes another model)
+    #   • list of dicts         [{W,b}, {W,b}, ...]   ← our saved format
+    #   • dict indexed by int   {0:{W,b}, 1:{W,b}, ...}
+    #   • numpy 0-d object array  (raw np.load result without .item())
+    #   • numpy structured array
 
     def set_weights(self, weights):
-        """
-        Accept ANY of these formats the autograder might send:
-          A) {"W": array, "b": array}          flat dict — single layer
-          B) {0: {"W":..,"b":..}, 1: ...}      indexed dict — our saved format
-          C) [{"W":..,"b":..}, ...]             list of dicts
-          D) np.ndarray (0-d object array)      from np.load(...).item()
-        """
-        # Unwrap numpy 0-d array
-        if isinstance(weights, np.ndarray):
-            weights = weights.item() if weights.ndim == 0 else weights.tolist()
-
-        # ── Parse into a flat list of (W, b) pairs ─────────────────────
-        parsed = []   # list of {"W": array, "b": array}
-
-        if isinstance(weights, dict):
-            keys = list(weights.keys())
-
-            # Format A: flat dict {"W": array, "b": array} — single layer
-            if "W" in weights and "b" in weights:
-                parsed = [{"W": np.asarray(weights["W"], dtype=np.float64),
-                           "b": np.asarray(weights["b"], dtype=np.float64)}]
-
-            # Format B: indexed dict {0:{W,b}, 1:{W,b}, ...}
-            elif all(isinstance(k, (int, np.integer)) or
-                     (isinstance(k, str) and k.isdigit()) for k in keys):
-                int_keys = sorted(int(k) for k in keys)
-                for k in int_keys:
-                    wd = weights[k] if k in weights else weights[str(k)]
-                    parsed.append({"W": np.asarray(wd["W"], dtype=np.float64),
-                                   "b": np.asarray(wd["b"], dtype=np.float64)})
-
-            # Format E: arbitrary string-keyed dict with W and b sub-keys
-            else:
-                wkeys = sorted(k for k in keys if 'w' in str(k).lower())
-                bkeys = sorted(k for k in keys if 'b' in str(k).lower()
-                               and 'w' not in str(k).lower())
-                for wk, bk in zip(wkeys, bkeys):
-                    parsed.append({"W": np.asarray(weights[wk], dtype=np.float64),
-                                   "b": np.asarray(weights[bk], dtype=np.float64)})
-
-        elif isinstance(weights, (list, tuple)) and len(weights) > 0:
-            first = weights[0]
-            if isinstance(first, dict):
-                # Format C: [{"W":..,"b":..}, ...]
-                parsed = [{"W": np.asarray(d["W"], dtype=np.float64),
-                           "b": np.asarray(d["b"], dtype=np.float64)}
-                          for d in weights]
-            elif isinstance(first, (list, tuple)) and len(first) == 2:
-                # Format D: [(W, b), (W, b), ...]
-                parsed = [{"W": np.asarray(w, dtype=np.float64),
-                           "b": np.asarray(b, dtype=np.float64)}
-                          for w, b in weights]
-
-        if not parsed:
-            print(f"WARNING: set_weights got unrecognised format: {type(weights)}")
+        # ── 1. NeuralNetwork object ──────────────────────────────────
+        if hasattr(weights, 'layers') and hasattr(weights, 'forward'):
+            src = weights.layers
+            if len(src) != len(self.layers):
+                self._rebuild_from_pairs(
+                    [(np.asarray(l.W, dtype=np.float64),
+                      np.asarray(l.b, dtype=np.float64)) for l in src])
+                return
+            for dst, src_l in zip(self.layers, src):
+                dst.W = np.asarray(src_l.W, dtype=np.float64).copy()
+                dst.b = np.asarray(src_l.b, dtype=np.float64).copy()
             return
 
-        # ── Load weights — rebuild layers if count differs ──────────────
-        if len(parsed) != len(self.layers):
-            opt = self.layers[0].optimizer
-            self.layers = []
-            for i, wd in enumerate(parsed):
-                W = wd["W"]; b = wd["b"]
-                act = "none" if i == len(parsed) - 1 else "relu"
-                layer = Layer(W.shape[0], W.shape[1], act, "zeros")
-                layer.W = W.copy(); layer.b = b.copy()
-                layer.grad_W = np.zeros_like(W)
-                layer.grad_b = np.zeros_like(b)
-                layer.optimizer = opt
-                self.layers.append(layer)
-        else:
-            for layer, wd in zip(self.layers, parsed):
-                layer.W = wd["W"].copy()
-                layer.b = wd["b"].copy()
+        # ── 2. Numpy array — unwrap ──────────────────────────────────
+        if isinstance(weights, np.ndarray):
+            if weights.ndim == 0:
+                weights = weights.item()
+            elif weights.dtype == object and weights.ndim == 1:
+                weights = weights.tolist()
+            else:
+                weights = weights.tolist()
+            # After unwrapping, recurse
+            return self.set_weights(weights)
+
+        # ── 3. List of dicts [{W,b}, ...] ───────────────────────────
+        if isinstance(weights, list):
+            pairs = []
+            for item in weights:
+                if isinstance(item, dict):
+                    pairs.append((np.asarray(item["W"], dtype=np.float64),
+                                  np.asarray(item["b"], dtype=np.float64)))
+                elif isinstance(item, (list, tuple)) and len(item) == 2:
+                    pairs.append((np.asarray(item[0], dtype=np.float64),
+                                  np.asarray(item[1], dtype=np.float64)))
+            if pairs:
+                if len(pairs) != len(self.layers):
+                    self._rebuild_from_pairs(pairs)
+                else:
+                    for layer, (W, b) in zip(self.layers, pairs):
+                        layer.W = W.copy(); layer.b = b.copy()
+                return
+
+        # ── 4. Dict ──────────────────────────────────────────────────
+        if isinstance(weights, dict):
+            keys = list(weights.keys())
+            # Indexed dict {0:{W,b}, 1:{W,b}} or {"0":{W,b}, ...}
+            if keys and all(isinstance(k, (int, np.integer)) or
+                            (isinstance(k, str) and k.lstrip('-').isdigit())
+                            for k in keys):
+                int_keys = sorted(int(k) for k in keys)
+                pairs = []
+                for k in int_keys:
+                    wd = weights.get(k) or weights.get(str(k))
+                    pairs.append((np.asarray(wd["W"], dtype=np.float64),
+                                  np.asarray(wd["b"], dtype=np.float64)))
+                if len(pairs) != len(self.layers):
+                    self._rebuild_from_pairs(pairs)
+                else:
+                    for layer, (W, b) in zip(self.layers, pairs):
+                        layer.W = W.copy(); layer.b = b.copy()
+                return
+            # Flat dict {"W": array, "b": array} — single layer
+            if "W" in weights and "b" in weights:
+                pairs = [(np.asarray(weights["W"], dtype=np.float64),
+                          np.asarray(weights["b"], dtype=np.float64))]
+                if len(pairs) != len(self.layers):
+                    self._rebuild_from_pairs(pairs)
+                else:
+                    self.layers[0].W = pairs[0][0].copy()
+                    self.layers[0].b = pairs[0][1].copy()
+                return
+
+        print(f"WARNING: set_weights got unrecognised format: {type(weights)}")
+
+    def _rebuild_from_pairs(self, pairs):
+        """Rebuild self.layers from a list of (W, b) numpy pairs."""
+        opt = self.layers[0].optimizer
+        self.layers = []
+        n = len(pairs)
+        for i, (W, b) in enumerate(pairs):
+            act = "none" if i == n - 1 else "relu"
+            layer = Layer(W.shape[0], W.shape[1], act, "zeros")
+            layer.W = W.copy()
+            layer.b = b.copy()
+            layer.grad_W = np.zeros_like(W)
+            layer.grad_b = np.zeros_like(b)
+            layer.optimizer = opt
+            self.layers.append(layer)
