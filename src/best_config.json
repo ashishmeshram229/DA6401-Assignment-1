@@ -1,18 +1,18 @@
 {
   "dataset": "mnist",
-  "epochs": 30,
-  "batch_size": 64,
+  "epochs": 35,
+  "batch_size": 128,
   "loss": "cross_entropy",
   "optimizer": "rmsprop",
-  "learning_rate": 0.001,
-  "weight_decay": 0.0,
+  "learning_rate": 0.0007,
+  "weight_decay": 0.0003,
   "num_layers": 5,
   "hidden_size": [
+    512,
+    256,
     128,
-    128,
-    128,
-    128,
-    128
+    64,
+    32
   ],
   "activation": [
     "relu",
@@ -23,8 +23,8 @@
   ],
   "weight_init": "xavier",
   "wandb_project": "da6401_assignment_1",
-  "wandb_group": "general",
+  "wandb_group": "MNIST_TOP_MODEL",
   "model_path": "best_model.npy",
   "config_path": "best_config.json",
-  "best_test_f1": 0.9792263773771792
+  "best_test_f1": 0.9828187678750545
 }
