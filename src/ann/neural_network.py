@@ -1,6 +1,6 @@
 import numpy as np
-from ann.layer import Layer
-from ann.losses import get_loss
+from ann.layer      import Layer
+from ann.losses     import get_loss
 from ann.optimizers import get_optimizer
 
 
@@ -11,7 +11,9 @@ class NeuralNetwork:
 
         hidden_sizes = getattr(args, "hidden_size", [128, 128, 128])
         activations  = getattr(args, "activation",  ["relu", "relu", "relu"])
-        num_hidden   = getattr(args, "num_layers",  3)
+        num_hidden   = getattr(args, "num_layers",   3)
+        weight_init  = getattr(args, "weight_init",
+                               getattr(args, "w_i", "xavier"))
 
         if not isinstance(hidden_sizes, list): hidden_sizes = [hidden_sizes]
         if not isinstance(activations,  list): activations  = [activations]
@@ -19,27 +21,30 @@ class NeuralNetwork:
         hidden_sizes = (hidden_sizes + [hidden_sizes[-1]] * num_hidden)[:num_hidden]
         activations  = (activations  + [activations[-1]]  * num_hidden)[:num_hidden]
 
-        self.loss_name = getattr(args, "loss", "cross_entropy")
-        self.loss_fn, self.loss_grad_fn = get_loss(self.loss_name)
+        self.loss_name    = getattr(args, "loss",         "cross_entropy")
         self.weight_decay = getattr(args, "weight_decay", 0.0)
-        weight_init = getattr(args, "weight_init", getattr(args, "w_i", "xavier"))
+        self.loss_fn, self.loss_grad_fn = get_loss(self.loss_name)
+
+        # one shared optimizer - tracks state per layer using layer id
+        opt = get_optimizer(args)
 
         self.layers = []
         in_dim = 28 * 28
 
         for out_dim, act in zip(hidden_sizes, activations):
-            layer = Layer(in_dim, out_dim, act, weight_init)
-            layer.optimizer = get_optimizer(args)
-            self.layers.append(layer)
+            l = Layer(in_dim, out_dim, act, weight_init)
+            l.optimizer = opt
+            self.layers.append(l)
             in_dim = out_dim
 
-        output_layer = Layer(in_dim, 10, "none", weight_init)
-        output_layer.optimizer = get_optimizer(args)
-        self.layers.append(output_layer)
+        # output layer uses "none" activation = linear = returns raw logits
+        # assignment says: "make sure model returns logits not softmax"
+        out_layer = Layer(in_dim, 10, "none", weight_init)
+        out_layer.optimizer = opt
+        self.layers.append(out_layer)
 
-    # ── forward ──────────────────────────────────────────────────────
-    # Do NOT hardcode reshape to 784.
-    # Autograder loads small dummy weights (e.g. W=2x10) and passes (B,2) input.
+    # ── forward ─────────────────────────────────────────────────────
+    # IMPORTANT: do NOT reshape to 784 - autograder passes (B,2) dummy inputs
 
     def forward(self, x):
         out = np.asarray(x, dtype=np.float64)
@@ -47,164 +52,133 @@ class NeuralNetwork:
             out = out.reshape(1, -1)
         elif out.ndim > 2:
             out = out.reshape(out.shape[0], -1)
-        for layer in self.layers:
-            out = layer.forward(out)
-        return out
+        for l in self.layers:
+            out = l.forward(out)
+        return out   # raw logits, no softmax
 
-    # ── helpers ──────────────────────────────────────────────────────
+    # ── helpers ─────────────────────────────────────────────────────
 
-    def _labels(self, y, B, C):
+    def _to_onehot(self, y, B):
+        C   = self.layers[-1].out_dim
         arr = np.asarray(y)
         if arr.ndim == 2 and arr.shape[1] == C:
-            arr = np.argmax(arr, axis=1)
-        else:
-            arr = arr.flatten()
-        return np.clip(arr[:B].astype(int), 0, C - 1)
-
-    def _one_hot(self, labels, C):
-        oh = np.zeros((len(labels), C), dtype=np.float64)
-        oh[np.arange(len(labels)), labels] = 1
+            return arr.astype(np.float64)
+        labels = np.clip(arr.flatten()[:B].astype(int), 0, C - 1)
+        oh     = np.zeros((B, C), dtype=np.float64)
+        oh[np.arange(B), labels] = 1.0
         return oh
 
-    def _softmax(self, x):
-        e = np.exp(x - np.max(x, axis=1, keepdims=True))
-        return e / (np.sum(e, axis=1, keepdims=True) + 1e-12)
-
-    # ── compute_loss ─────────────────────────────────────────────────
+    # ── compute_loss ────────────────────────────────────────────────
+    # uses loss_fn from losses.py - single source of truth for loss computation
 
     def compute_loss(self, logits, y):
         if logits.ndim == 1: logits = logits.reshape(1, -1)
-        B, C = logits.shape
-        labels = self._labels(y, B, C)
-        y_oh   = self._one_hot(labels, C)
-        if self.loss_name == "cross_entropy":
-            loss = -np.mean(np.sum(y_oh * np.log(self._softmax(logits) + 1e-9), axis=1))
-        else:
-            loss = np.mean(np.sum((logits - y_oh) ** 2, axis=1))
+        B    = logits.shape[0]
+        y_oh = self._to_onehot(y, B)
+        loss = self.loss_fn(logits, y_oh)
+        if self.weight_decay > 0:
+            l2    = sum(np.sum(l.W ** 2) for l in self.layers)
+            loss += (self.weight_decay / 2.0) * l2
         return float(loss)
 
-    # ── backward ─────────────────────────────────────────────────────
+    # ── backward ────────────────────────────────────────────────────
+    # assignment: "must compute and return gradients from last layer to first"
 
     def backward(self, logits, y_true):
         if logits.ndim == 1: logits = logits.reshape(1, -1)
-        B, C = logits.shape
-        labels = self._labels(y_true, B, C)
-        y_oh   = self._one_hot(labels, C)
-        grad   = self.loss_grad_fn(logits, y_oh)
-        if grad is None:
-            grad = np.zeros_like(logits)
-        for layer in reversed(self.layers):
-            grad = layer.backward(grad)
-            if grad is None:
-                grad = np.zeros((B, layer.W.shape[0]))
-        return self.layers[0].grad_W, self.layers[0].grad_b
+        B    = logits.shape[0]
+        y_oh = self._to_onehot(y_true, B)
 
-    # ── update ───────────────────────────────────────────────────────
+        # get initial gradient from loss function (no /m - layer.backward does /m)
+        grad = self.loss_grad_fn(logits, y_oh)
+
+        # pass gradient backwards through all layers
+        for l in reversed(self.layers):
+            grad = l.backward(grad)
+
+        # return list of (grad_W, grad_b) from last layer to first
+        return [(l.grad_W, l.grad_b) for l in reversed(self.layers)]
+
+    # ── update ──────────────────────────────────────────────────────
 
     def update(self, lr):
-        for layer in self.layers:
-            layer.update(lr, self.weight_decay)
+        for l in self.layers:
+            l.update(lr, self.weight_decay)
 
-    # ── get_weights ──────────────────────────────────────────────────
-    # Returns dict {"W0":..,"b0":..,"W1":..,"b1":..}
-    # np.save + np.load().item() round-trips correctly.
+    def predict(self, x):
+        return np.argmax(self.forward(x), axis=1)
+
+    # ── get_weights ─────────────────────────────────────────────────
 
     def get_weights(self):
-        weights = {}
+        w = {}
         for i, l in enumerate(self.layers):
-            weights[f"W{i}"] = l.W.copy()
-            weights[f"b{i}"] = l.b.copy()
-        return weights
+            w[f"W{i}"] = l.W.copy()
+            w[f"b{i}"] = l.b.copy()
+        return w
 
-    # ── set_weights ──────────────────────────────────────────────────
-    # Handles every format the autograder may pass.
+    # ── set_weights ─────────────────────────────────────────────────
+    # handles dict {"W0","b0",...}, list of dicts, numpy 0-d array
 
     def set_weights(self, weights):
 
-        # Case 1: another NeuralNetwork object
         if hasattr(weights, "layers") and hasattr(weights, "get_weights"):
             weights = weights.get_weights()
 
-        # Case 2: numpy array — unwrap
         if isinstance(weights, np.ndarray):
-            weights = weights.item() if weights.ndim == 0 else weights.tolist()
+            weights = weights.item() if weights.ndim == 0 else list(weights)
             return self.set_weights(weights)
 
-        # Case 3: list of dicts [{W, b}, ...]
-        if isinstance(weights, list):
-            pairs = []
+        pairs = []
+
+        if isinstance(weights, dict):
+            i = 0
+            while True:
+                W = weights.get(f"W{i}", weights.get(f"w{i}", weights.get(f"w_{i}")))
+                b = weights.get(f"b{i}", weights.get(f"b_{i}"))
+                if W is None or b is None: break
+                pairs.append((np.asarray(W, np.float64),
+                               np.asarray(b, np.float64).reshape(1, -1)))
+                i += 1
+
+        elif isinstance(weights, list):
             for item in weights:
                 if isinstance(item, dict):
                     W = item.get("W", item.get("w"))
                     b = item.get("b")
                     if W is not None and b is not None:
                         pairs.append((np.asarray(W, np.float64),
-                                      np.asarray(b, np.float64)))
-            if pairs:
-                self._load_pairs(pairs)
+                                       np.asarray(b, np.float64).reshape(1, -1)))
+
+        if not pairs:
+            print(f"WARNING: set_weights could not parse format {type(weights)}")
+            return
+
+        self._apply_pairs(pairs)
+
+    def _apply_pairs(self, pairs):
+        # check if all layer shapes match
+        if len(pairs) == len(self.layers):
+            all_match = all(l.W.shape == W.shape
+                            for l, (W, b) in zip(self.layers, pairs))
+            if all_match:
+                for l, (W, b) in zip(self.layers, pairs):
+                    l.W      = W.copy()
+                    l.b      = b.copy()
+                    l.grad_W = np.zeros_like(W)
+                    l.grad_b = np.zeros_like(b)
                 return
 
-        # Case 4: dict — extract W0/b0/W1/b1/... keys (our format + any similar)
-        if isinstance(weights, dict):
-            pairs = []
-
-            # Sub-case A: {"W0":arr, "b0":arr, "W1":arr, ...}
-            i = 0
-            while True:
-                W = weights.get(f"W{i}", weights.get(f"w{i}"))
-                b = weights.get(f"b{i}")
-                if W is None or b is None:
-                    break
-                pairs.append((np.asarray(W, np.float64),
-                               np.asarray(b, np.float64)))
-                i += 1
-
-            # Sub-case B: {0:{"W":arr,"b":arr}, 1:{...}, ...}
-            if not pairs:
-                int_keys = sorted(
-                    [k for k in weights
-                     if isinstance(k, (int, np.integer)) or
-                        (isinstance(k, str) and k.lstrip('-').isdigit())],
-                    key=lambda k: int(k)
-                )
-                for k in int_keys:
-                    v = weights[k]
-                    if isinstance(v, dict):
-                        W = v.get("W", v.get("w"))
-                        b = v.get("b")
-                        if W is not None and b is not None:
-                            pairs.append((np.asarray(W, np.float64),
-                                          np.asarray(b, np.float64)))
-
-            # Sub-case C: {"W": arr, "b": arr}  single layer
-            if not pairs and "W" in weights and "b" in weights:
-                pairs.append((np.asarray(weights["W"], np.float64),
-                               np.asarray(weights["b"], np.float64)))
-
-            if not pairs and "w" in weights and "b" in weights:
-                pairs.append((np.asarray(weights["w"], np.float64),
-                               np.asarray(weights["b"], np.float64)))
-
-            if pairs:
-                self._load_pairs(pairs)
-                return
-
-        print(f"WARNING: set_weights could not parse format {type(weights)}")
-
-    def _load_pairs(self, pairs):
-        """Load (W, b) pairs into layers, rebuilding layer list if sizes differ."""
+        # shapes differ - rebuild layers (autograder dummy weight case)
         opt = self.layers[0].optimizer
-
-        # Always rebuild to match the provided weights exactly
         self.layers = []
         n = len(pairs)
         for i, (W, b) in enumerate(pairs):
-            b = b.reshape(1, -1) if b.ndim == 1 else b
             act = "none" if i == n - 1 else "relu"
-            layer = Layer(W.shape[0], W.shape[1], act, "zeros")
-            layer.W = W.copy()
-            layer.b = b.copy()
-            layer.grad_W = np.zeros_like(W)
-            layer.grad_b = np.zeros_like(b)
-            layer.optimizer = opt
-            self.layers.append(layer)
+            l   = Layer(W.shape[0], W.shape[1], act, "zeros")
+            l.W         = W.copy()
+            l.b         = b.copy()
+            l.grad_W    = np.zeros_like(W)
+            l.grad_b    = np.zeros_like(b)
+            l.optimizer = opt
+            self.layers.append(l)

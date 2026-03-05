@@ -1,60 +1,51 @@
 import numpy as np
 
 
-# Activation Functions and their gradients for backpropagation
-
-
-
-# ReLU
-
-def relu(x):
-    return np.maximum(0, x)
-
-def relu_grad(x):
-    return (x > 0).astype(np.float64)
-
-# Sigmoid 
-
 def sigmoid(x):
-    return np.where(x >= 0, 
-                    1.0 / (1.0 + np.exp(-x)), 
-                    np.exp(x) / (1.0 + np.exp(x)))
+    x = np.clip(x, -500, 500)
+    return 1.0 / (1.0 + np.exp(-x))
 
-def sigmoid_grad(x):
+def sigmoid_deriv(x):
     s = sigmoid(x)
     return s * (1.0 - s)
 
-# Tanh
-def tanh(x):
+
+def tanh_fn(x):
     return np.tanh(x)
 
-def tanh_grad(x):
-    t = np.tanh(x)
-    return 1.0 - t * t
+def tanh_deriv(x):
+    return 1.0 - np.tanh(x) ** 2
 
-# Identity (for final layer logits)
 
-def identity(x):
-    return x
+def relu(x):
+    return np.maximum(0.0, x)
 
-def identity_grad(x):
+def relu_deriv(x):
+    return (x > 0).astype(np.float64)
+
+
+# identity for output layer - returns raw logits as assignment requires
+def none_fn(x):
+    return x.copy()
+
+def none_deriv(x):
     return np.ones_like(x)
 
-# Activation factory
-def get_activation(name):
-    
-    name = name.lower()
-    if name == "relu":
-        return relu, relu_grad
-    
 
-    elif name == "sigmoid":
-        return sigmoid, sigmoid_grad
-    
-    elif name == "tanh":
-        return tanh, tanh_grad
-    
-    elif name == "none":
-        return identity, identity_grad
-    else:
-        raise ValueError(f"Unknown activation: {name}")
+def softmax(x):
+    x = x - np.max(x, axis=1, keepdims=True)
+    e = np.exp(np.clip(x, -500, 500))
+    return e / (np.sum(e, axis=1, keepdims=True) + 1e-12)
+
+
+act_map = {
+    "sigmoid": (sigmoid,  sigmoid_deriv),
+    "tanh":    (tanh_fn,  tanh_deriv),
+    "relu":    (relu,     relu_deriv),
+    "none":    (none_fn,  none_deriv),
+}
+
+def get_activation(name):
+    if name not in act_map:
+        raise ValueError(f"unknown activation: {name}")
+    return act_map[name]

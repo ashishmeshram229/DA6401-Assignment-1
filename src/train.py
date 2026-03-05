@@ -1,10 +1,14 @@
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 import numpy as np
 import argparse
 import json
 import os
 from sklearn.metrics import f1_score
+
 from ann.neural_network import NeuralNetwork
-from data_utils import load_data, get_batches
+from data_utils         import load_data, get_batches
 
 try:
     import wandb
@@ -12,11 +16,15 @@ try:
 except ImportError:
     _WANDB = False
 
+
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def _winit(project, group, config, name):
     if not _WANDB: return
     try:
         wandb.init(project=project, group=group, config=config, name=name,
-                   reinit=True, settings=wandb.Settings(init_timeout=15))
+                   reinit=True, settings=wandb.Settings(init_timeout=30))
     except Exception:
         try: wandb.init(mode="disabled")
         except Exception: pass
@@ -31,13 +39,10 @@ def _wfinish():
     try: wandb.finish()
     except Exception: pass
 
-# train.py lives at <repo>/src/train.py — anchor all paths here
-SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("-d",   "--dataset",       type=str,   default="mnist",
+    p.add_argument("-d",   "--dataset",       type=str,   default="fashion_mnist",
                    choices=["mnist", "fashion_mnist"])
     p.add_argument("-e",   "--epochs",        type=int,   default=20)
     p.add_argument("-b",   "--batch_size",    type=int,   default=32)
@@ -47,7 +52,6 @@ def parse_args():
                    choices=["sgd", "momentum", "nag", "rmsprop"])
     p.add_argument("-lr",  "--learning_rate", type=float, default=0.001)
     p.add_argument("-wd",  "--weight_decay",  type=float, default=0.0001)
-    # -nhl = number of HIDDEN layers (assignment PDF definition)
     p.add_argument("-nhl", "--num_layers",    type=int,   default=3)
     p.add_argument("-sz",  "--hidden_size",   type=int,   nargs="+",
                    default=[128, 128, 128])
@@ -66,11 +70,9 @@ def parse_args():
 def train():
     args = parse_args()
 
-    # Paths always resolve to src/ regardless of cwd
     model_path  = os.path.join(SRC_DIR, args.model_path)
     config_path = os.path.join(SRC_DIR, args.config_path)
 
-    # Sync list lengths to num_layers hidden layers
     n = max(1, args.num_layers)
     args.hidden_size = (args.hidden_size + [args.hidden_size[-1]] * n)[:n]
     args.activation  = (args.activation  + [args.activation[-1]]  * n)[:n]
@@ -81,59 +83,76 @@ def train():
     x_train, y_train, x_val, y_val, x_test, y_test = load_data(args.dataset)
     model = NeuralNetwork(args)
 
-    best_f1 = -1.0
+    best_f1      = -1.0
     best_weights = None
-    best_cfg = vars(args).copy()
+    best_cfg     = vars(args).copy()
 
-    print(f"\nTraining | dataset={args.dataset} | opt={args.optimizer} | "
-          f"lr={args.learning_rate} | epochs={args.epochs} | "
-          f"arch=784→{args.hidden_size}→10")
-    print(f"Saving to: {model_path}")
+    print(f"\ntraining | dataset={args.dataset} | opt={args.optimizer} | "
+          f"lr={args.learning_rate} | epochs={args.epochs}")
+    print(f"arch: 784 -> {args.hidden_size} -> 10 | act={args.activation}")
+    print(f"saving to: {model_path}")
+    print("-" * 65)
 
     for ep in range(1, args.epochs + 1):
-        total, nb = 0.0, 0
-        for xb, yb in get_batches(x_train, y_train, args.batch_size, seed=42 + ep):
+        total_loss  = 0.0
+        num_batches = 0
+
+        # FIX: get_batches does NOT take seed param - removed seed=42+ep
+        for xb, yb in get_batches(x_train, y_train, args.batch_size):
             logits = model.forward(xb)
             loss   = model.compute_loss(logits, yb)
             model.backward(logits, yb)
-            _wlog({"grad_norm_l0": float(np.linalg.norm(model.layers[0].grad_W))})
             model.update(args.learning_rate)
-            total += loss; nb += 1
+            total_loss  += loss
+            num_batches += 1
 
-        vl    = model.forward(x_val)
-        vacc  = float(np.mean(np.argmax(vl, axis=1) == y_val))
-        vloss = model.compute_loss(vl, y_val)
-        tl    = model.forward(x_test)
-        tp    = np.argmax(tl, axis=1)
-        tf1   = f1_score(y_test, tp, average="macro", zero_division=0)
-        tacc  = float(np.mean(tp == y_test))
-        tracc = float(np.mean(
-            np.argmax(model.forward(x_train[:5000]), axis=1) == y_train[:5000]))
+        train_loss = total_loss / num_batches
 
-        print(f"Ep {ep:02d} | loss={total/nb:.4f} | val_acc={vacc:.4f} | "
-              f"test_acc={tacc:.4f} | test_f1={tf1:.4f}")
-        _wlog({"epoch": ep, "train_loss": total/nb, "val_loss": vloss,
-               "val_acc": vacc, "train_acc": tracc, "test_acc": tacc,
-               "test_f1": tf1,
-               })
+        val_logits = model.forward(x_val)
+        val_loss   = model.compute_loss(val_logits, y_val)
+        val_preds  = np.argmax(val_logits, axis=1)
+        val_acc    = float(np.mean(val_preds == y_val))
 
-        if tf1 > best_f1:
-            best_f1 = tf1
-            best_weights = model.get_weights()   # list of dicts
+        tr_preds = np.argmax(model.forward(x_train[:5000]), axis=1)
+        tr_acc   = float(np.mean(tr_preds == y_train[:5000]))
+
+        test_preds = np.argmax(model.forward(x_test), axis=1)
+        test_acc   = float(np.mean(test_preds == y_test))
+        test_f1    = f1_score(y_test, test_preds, average="macro", zero_division=0)
+
+        grad_norm = float(np.linalg.norm(model.layers[0].grad_W))
+
+        print(f"ep {ep:02d} | loss={train_loss:.4f} | val_acc={val_acc:.4f} | "
+              f"test_acc={test_acc:.4f} | test_f1={test_f1:.4f}")
+
+        _wlog({
+            "epoch":        ep,
+            "train_loss":   train_loss,
+            "val_loss":     val_loss,
+            "train_acc":    tr_acc,
+            "val_acc":      val_acc,
+            "test_acc":     test_acc,
+            "test_f1":      test_f1,
+            "grad_norm_l0": grad_norm,
+        })
+
+        if test_f1 > best_f1:
+            best_f1      = test_f1
+            best_weights = model.get_weights()
             best_cfg["best_test_f1"] = float(best_f1)
             best_cfg["best_epoch"]   = ep
-            print(f"  ✓ New best F1: {best_f1:.4f}")
+            print(f"  -> new best f1: {best_f1:.4f}")
 
-    # Save list of dicts — np.save wraps as 0-d object array
     np.save(model_path, best_weights)
+
     cfg_out = {k: list(v) if isinstance(v, (list, np.ndarray)) else v
                for k, v in best_cfg.items()}
     with open(config_path, "w") as f:
         json.dump(cfg_out, f, indent=2)
 
-    print(f"\nBest Test F1 : {best_f1:.4f}")
-    print(f"Saved model  → {model_path}")
-    print(f"Saved config → {config_path}")
+    print(f"\nbest test f1  : {best_f1:.4f}")
+    print(f"saved model   : {model_path}")
+    print(f"saved config  : {config_path}")
     _wfinish()
 
 

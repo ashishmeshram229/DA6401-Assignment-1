@@ -1,156 +1,76 @@
 import numpy as np
 
 
+# each optimizer has step(layer, lr, weight_decay) interface
 
-class BaseOptimizer:
-    def update(self, layer, lr, weight_decay):
-        raise NotImplementedError
-
-
-
-
-class SGD(BaseOptimizer):
+class SGD:
+    def step(self, layer, lr, wd=0.0):
+        layer.W -= lr * (layer.grad_W + wd * layer.W)
+        layer.b -= lr * layer.grad_b
 
 
-    def __init__(self, lr):
-        self.lr = lr
-
-    def update(self, layer, lr_override, weight_decay):
-        lr = lr_override if lr_override is not None else self.lr
-        
-        dW = layer.grad_W + weight_decay * layer.W
-        dB = layer.grad_b
-        
-        # AUTOGRADER-SAFE GRADIENT CLIPPING
-        dW = np.clip(dW, -5.0, 5.0)
-        dB = np.clip(dB, -5.0, 5.0)
-        
-        layer.W -= lr * dW
-        layer.b -= lr * dB
-
-
-
-
-
-class Momentum(BaseOptimizer):
-
-
-    def __init__(self, lr, beta=0.9):
-        self.lr = lr
+class Momentum:
+    def __init__(self, beta=0.9):
         self.beta = beta
-        self.vW = None
-        self.vB = None
+        self.vW   = {}
+        self.vb   = {}
+
+    def step(self, layer, lr, wd=0.0):
+        lid = id(layer)
+        if lid not in self.vW:
+            self.vW[lid] = np.zeros_like(layer.W)
+            self.vb[lid] = np.zeros_like(layer.b)
+        gW = layer.grad_W + wd * layer.W
+        gb = layer.grad_b
+        self.vW[lid] = self.beta * self.vW[lid] + gW
+        self.vb[lid] = self.beta * self.vb[lid] + gb
+        layer.W -= lr * self.vW[lid]
+        layer.b -= lr * self.vb[lid]
 
 
-
-
-    def update(self, layer, lr_override, weight_decay):
-        lr = lr_override if lr_override is not None else self.lr
-
-        if self.vW is None:
-            self.vW = np.zeros_like(layer.W)
-            self.vB = np.zeros_like(layer.b)
-
-        dW = layer.grad_W + weight_decay * layer.W
-        dB = layer.grad_b
-        
-        # AUTOGRADER-SAFE GRADIENT CLIPPING
-        dW = np.clip(dW, -5.0, 5.0)
-        dB = np.clip(dB, -5.0, 5.0)
-
-
-
-        self.vW = self.beta * self.vW + dW
-        self.vB = self.beta * self.vB + dB
-
-        layer.W -= lr * self.vW
-        layer.b -= lr * self.vB
-
-
-
-
-class NAG(BaseOptimizer):
-
-
-    def __init__(self, lr, beta=0.9):
-        self.lr = lr
+class NAG:
+    def __init__(self, beta=0.9):
         self.beta = beta
-        self.vW = None
-        self.vB = None
+        self.vW   = {}
+        self.vb   = {}
 
-    def update(self, layer, lr_override, weight_decay):
-        lr = lr_override if lr_override is not None else self.lr
-
-        if self.vW is None:
-            self.vW = np.zeros_like(layer.W)
-            self.vB = np.zeros_like(layer.b)
-
-        dW = layer.grad_W + weight_decay * layer.W
-        dB = layer.grad_b
-        
-
-
-        # AUTOGRADER-SAFE GRADIENT CLIPPING
-        dW = np.clip(dW, -5.0, 5.0)
-        dB = np.clip(dB, -5.0, 5.0)
-
-        self.vW = self.beta * self.vW + dW
-        self.vB = self.beta * self.vB + dB
-
-        step_W = self.beta * self.vW + dW
-        step_b = self.beta * self.vB + dB
-
-        layer.W -= lr * step_W
-        layer.b -= lr * step_b
+    def step(self, layer, lr, wd=0.0):
+        lid = id(layer)
+        if lid not in self.vW:
+            self.vW[lid] = np.zeros_like(layer.W)
+            self.vb[lid] = np.zeros_like(layer.b)
+        gW = layer.grad_W + wd * layer.W
+        gb = layer.grad_b
+        self.vW[lid] = self.beta * self.vW[lid] + gW
+        self.vb[lid] = self.beta * self.vb[lid] + gb
+        layer.W -= lr * (self.beta * self.vW[lid] + gW)
+        layer.b -= lr * (self.beta * self.vb[lid] + gb)
 
 
-#RMPSProp - Baseoptimizer
-class RMSProp(BaseOptimizer):
-    def __init__(self, lr, beta=0.9, eps=1e-8):
-        self.lr = lr
+class RMSProp:
+    def __init__(self, beta=0.9, eps=1e-8):
         self.beta = beta
-        self.eps = eps
-        self.sW = None
-        self.sB = None
+        self.eps  = eps
+        self.sW   = {}
+        self.sb   = {}
 
-    def update(self, layer, lr_override, weight_decay):
-        lr = lr_override if lr_override is not None else self.lr
-
-        if self.sW is None:
-            self.sW = np.zeros_like(layer.W)
-            self.sB = np.zeros_like(layer.b)
-
-
-        dW = layer.grad_W + weight_decay * layer.W
-        dB = layer.grad_b
-
-        
-        # AUTOGRADER-SAFE GRADIENT CLIPPING
-        dW = np.clip(dW, -5.0, 5.0)
-        dB = np.clip(dB, -5.0, 5.0)
-
-        self.sW = self.beta * self.sW + (1 - self.beta) * (dW ** 2)
-        self.sB = self.beta * self.sB + (1 - self.beta) * (dB ** 2)
-
-
-
-        layer.W -= lr * dW / (np.sqrt(self.sW) + self.eps)
-        layer.b -= lr * dB / (np.sqrt(self.sB) + self.eps)
-
+    def step(self, layer, lr, wd=0.0):
+        lid = id(layer)
+        if lid not in self.sW:
+            self.sW[lid] = np.zeros_like(layer.W)
+            self.sb[lid] = np.zeros_like(layer.b)
+        gW = layer.grad_W + wd * layer.W
+        gb = layer.grad_b
+        self.sW[lid] = self.beta * self.sW[lid] + (1 - self.beta) * gW ** 2
+        self.sb[lid] = self.beta * self.sb[lid] + (1 - self.beta) * gb ** 2
+        layer.W -= lr * gW / (np.sqrt(self.sW[lid]) + self.eps)
+        layer.b -= lr * gb / (np.sqrt(self.sb[lid]) + self.eps)
 
 
 def get_optimizer(args):
-
-    opt_name = args.optimizer.lower()
-
-    if opt_name == "sgd": return SGD(args.learning_rate)
-
-    elif opt_name == "momentum": return Momentum(args.learning_rate)
-
-    elif opt_name == "nag": return NAG(args.learning_rate)
-
-    
-
-    elif opt_name == "rmsprop": return RMSProp(args.learning_rate)
-
-    else: raise ValueError(f"Unknown optimizer: {args.optimizer}")
+    name = getattr(args, "optimizer", "sgd")
+    if name == "sgd":       return SGD()
+    if name == "momentum":  return Momentum()
+    if name == "nag":       return NAG()
+    if name == "rmsprop":   return RMSProp()
+    raise ValueError(f"unknown optimizer: {name}")
