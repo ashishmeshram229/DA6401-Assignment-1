@@ -1,17 +1,19 @@
 {
   "dataset": "mnist",
   "epochs": 20,
-  "batch_size": 64,
+  "batch_size": 32,
   "loss": "cross_entropy",
   "optimizer": "rmsprop",
   "learning_rate": 0.001,
-  "weight_decay": 0.0,
+  "weight_decay": 0.0001,
   "num_layers": 3,
   "hidden_size": [
+    128,
     128,
     128
   ],
   "activation": [
+    "relu",
     "relu",
     "relu"
   ],
@@ -20,6 +22,6 @@
   "wandb_group": "general",
   "model_path": "best_model.npy",
   "config_path": "best_config.json",
-  "best_test_f1": 0.9803245202237653,
-  "best_epoch": 14
+  "best_test_f1": 0.977064367983132,
+  "best_epoch": 10
 }

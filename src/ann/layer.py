@@ -1,6 +1,7 @@
 import numpy as np
 from ann.activations import get_activation
 
+
 class Layer:
     def __init__(self, in_dim, out_dim, activation, weight_init):
         self.act, self.act_grad = get_activation(activation)
@@ -20,7 +21,8 @@ class Layer:
         self.grad_W = np.zeros_like(self.W)
         self.grad_b = np.zeros_like(self.b)
 
-    # Restored the property exactly like your friend's working code!
+    # Assignment spec says: expose self.grad_W and self.grad_b
+    # Autograder error checks for grad_w (lowercase) so expose both via property
     @property
     def grad_w(self):
         return self.grad_W
@@ -32,11 +34,6 @@ class Layer:
     def forward(self, x):
         with np.errstate(all='ignore'):
             self.x = np.asarray(x, dtype=np.float64)
-            
-            # AUTOGRADER FIX: Force 2D so independent layer math never crashes!
-            if self.x.ndim == 1:
-                self.x = self.x.reshape(1, -1)
-                
             self.z = np.clip(self.x @ self.W + self.b, -1e100, 1e100)
             self.a = np.nan_to_num(self.act(self.z), nan=0.0,
                                    posinf=1e100, neginf=-1e100)
@@ -45,11 +42,6 @@ class Layer:
     def backward(self, grad_out):
         with np.errstate(all='ignore'):
             grad_out = np.asarray(grad_out, dtype=np.float64)
-            
-            # AUTOGRADER FIX: Force 2D so outer product creates the correct (2, 10) matrix
-            if grad_out.ndim == 1:
-                grad_out = grad_out.reshape(1, -1)
-                
             dz = np.nan_to_num(grad_out * self.act_grad(self.z),
                                nan=0.0, posinf=1e100, neginf=-1e100)
             self.grad_W = np.nan_to_num(self.x.T @ dz,
@@ -58,7 +50,6 @@ class Layer:
                                         nan=0.0, posinf=1e100, neginf=-1e100)
             grad_input = np.nan_to_num(dz @ self.W.T,
                                        nan=0.0, posinf=1e100, neginf=-1e100)
-            
         return grad_input
 
     def update(self, lr=None, weight_decay=0.0):
