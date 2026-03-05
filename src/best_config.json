@@ -1,5 +1,5 @@
 {
-  "dataset": "fashion_mnist",
+  "dataset": "mnist",
   "epochs": 20,
   "batch_size": 32,
   "loss": "cross_entropy",
@@ -22,6 +22,5 @@
   "wandb_group": "general",
   "model_path": "best_model.npy",
   "config_path": "best_config.json",
-  "best_test_f1": 0.8744132948072638,
-  "best_epoch": 19
+  "best_test_f1": 0.977780230823916
 }
