@@ -97,7 +97,6 @@ def train():
         total_loss  = 0.0
         num_batches = 0
 
-        # FIX: get_batches does NOT take seed param - removed seed=42+ep
         for xb, yb in get_batches(x_train, y_train, args.batch_size):
             logits = model.forward(xb)
             loss   = model.compute_loss(logits, yb)

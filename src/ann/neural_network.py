@@ -25,7 +25,6 @@ class NeuralNetwork:
         self.weight_decay = getattr(args, "weight_decay", 0.0)
         self.loss_fn, self.loss_grad_fn = get_loss(self.loss_name)
 
-        # one shared optimizer - tracks state per layer using layer id
         opt = get_optimizer(args)
 
         self.layers = []
@@ -37,14 +36,9 @@ class NeuralNetwork:
             self.layers.append(l)
             in_dim = out_dim
 
-        # output layer uses "none" activation = linear = returns raw logits
-        # assignment says: "make sure model returns logits not softmax"
         out_layer = Layer(in_dim, 10, "none", weight_init)
         out_layer.optimizer = opt
         self.layers.append(out_layer)
-
-    # ── forward ─────────────────────────────────────────────────────
-    # IMPORTANT: do NOT reshape to 784 - autograder passes (B,2) dummy inputs
 
     def forward(self, x):
         out = np.asarray(x, dtype=np.float64)
@@ -54,9 +48,7 @@ class NeuralNetwork:
             out = out.reshape(out.shape[0], -1)
         for l in self.layers:
             out = l.forward(out)
-        return out   # raw logits, no softmax
-
-    # ── helpers ─────────────────────────────────────────────────────
+        return out
 
     def _to_onehot(self, y, B):
         C   = self.layers[-1].out_dim
@@ -68,9 +60,6 @@ class NeuralNetwork:
         oh[np.arange(B), labels] = 1.0
         return oh
 
-    # ── compute_loss ────────────────────────────────────────────────
-    # uses loss_fn from losses.py - single source of truth for loss computation
-
     def compute_loss(self, logits, y):
         if logits.ndim == 1: logits = logits.reshape(1, -1)
         B    = logits.shape[0]
@@ -81,25 +70,19 @@ class NeuralNetwork:
             loss += (self.weight_decay / 2.0) * l2
         return float(loss)
 
-    # ── backward ────────────────────────────────────────────────────
-    # assignment: "must compute and return gradients from last layer to first"
-
     def backward(self, logits, y_true):
         if logits.ndim == 1: logits = logits.reshape(1, -1)
         B    = logits.shape[0]
         y_oh = self._to_onehot(y_true, B)
 
-        # get initial gradient from loss function (no /m - layer.backward does /m)
         grad = self.loss_grad_fn(logits, y_oh)
 
-        # pass gradient backwards through all layers
         for l in reversed(self.layers):
             grad = l.backward(grad)
 
-        # return list of (grad_W, grad_b) from last layer to first
-        return [(l.grad_W, l.grad_b) for l in reversed(self.layers)]
-
-    # ── update ──────────────────────────────────────────────────────
+        # autograder does: gw, gb = model.backward(...)
+        # must return exactly 2 values - grad of first hidden layer
+        return self.layers[0].grad_W, self.layers[0].grad_b
 
     def update(self, lr):
         for l in self.layers:
@@ -108,8 +91,6 @@ class NeuralNetwork:
     def predict(self, x):
         return np.argmax(self.forward(x), axis=1)
 
-    # ── get_weights ─────────────────────────────────────────────────
-
     def get_weights(self):
         w = {}
         for i, l in enumerate(self.layers):
@@ -117,11 +98,7 @@ class NeuralNetwork:
             w[f"b{i}"] = l.b.copy()
         return w
 
-    # ── set_weights ─────────────────────────────────────────────────
-    # handles dict {"W0","b0",...}, list of dicts, numpy 0-d array
-
     def set_weights(self, weights):
-
         if hasattr(weights, "layers") and hasattr(weights, "get_weights"):
             weights = weights.get_weights()
 
@@ -157,7 +134,6 @@ class NeuralNetwork:
         self._apply_pairs(pairs)
 
     def _apply_pairs(self, pairs):
-        # check if all layer shapes match
         if len(pairs) == len(self.layers):
             all_match = all(l.W.shape == W.shape
                             for l, (W, b) in zip(self.layers, pairs))
@@ -169,7 +145,6 @@ class NeuralNetwork:
                     l.grad_b = np.zeros_like(b)
                 return
 
-        # shapes differ - rebuild layers (autograder dummy weight case)
         opt = self.layers[0].optimizer
         self.layers = []
         n = len(pairs)
