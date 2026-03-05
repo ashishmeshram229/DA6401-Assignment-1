@@ -1,7 +1,7 @@
 {
-  "dataset": "mnist",
-  "epochs": 20,
-  "batch_size": 32,
+  "dataset": "fashion_mnist",
+  "epochs": 3,
+  "batch_size": 64,
   "loss": "cross_entropy",
   "optimizer": "rmsprop",
   "learning_rate": 0.001,
@@ -18,10 +18,10 @@
     "relu"
   ],
   "weight_init": "xavier",
-  "wandb_project": "da6401_assignment_1",
+  "wandb_project": "DL-AS1-WANDB",
   "wandb_group": "general",
   "model_path": "best_model.npy",
   "config_path": "best_config.json",
-  "best_test_f1": 0.9794499280479254,
-  "best_epoch": 19
+  "best_test_f1": 0.8573805076043154,
+  "best_epoch": 3
 }
