@@ -1,5 +1,5 @@
 {
-  "dataset": "fashion_mnist",
+  "dataset": "mnist",
   "epochs": 20,
   "batch_size": 32,
   "loss": "cross_entropy",
@@ -12,16 +12,10 @@
     128,
     128
   ],
-  "activation": [
-    "relu",
-    "relu",
-    "relu"
-  ],
+  "activation": "relu",
   "weight_init": "xavier",
   "wandb_project": "DL-AS1-WANDB",
-  "wandb_group": "general",
-  "model_path": "best_model.npy",
-  "config_path": "best_config.json",
-  "best_test_f1": 0.8744132948072638,
-  "best_epoch": 19
+  "wandb_entity": null,
+  "no_wandb": false,
+  "model_save_path": "best_model.npy"
 }

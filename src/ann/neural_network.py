@@ -1,159 +1,212 @@
+"""
+Neural Network — all loss functions embedded to avoid import issues.
+"""
+
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
-from ann.layer      import Layer
-from ann.losses     import get_loss
-from ann.optimizers import get_optimizer
+from ann.neural_layer import Layer
+from ann.activations  import ACT_FN, ACT_GRAD, softmax
+from ann.optimizers   import OPTIMIZERS
+from sklearn.metrics  import accuracy_score, f1_score, precision_score, recall_score
+
+# ── Loss functions (embedded — no separate objective_functions.py needed) ──
+
+def _cross_entropy(logits, y_true):
+    probs = softmax(logits)
+    n     = y_true.shape[0]
+    return float(np.mean(-np.log(probs[np.arange(n), y_true] + 1e-9)))
+
+def _cross_entropy_grad(logits, y_true):
+    probs = softmax(logits)
+    n     = y_true.shape[0]
+    probs[np.arange(n), y_true] -= 1
+    return probs / n
+
+def _mse(logits, y_true):
+    probs   = softmax(logits)
+    n, c    = probs.shape
+    one_hot = np.zeros_like(probs)
+    one_hot[np.arange(n), y_true] = 1
+    return float(np.mean((probs - one_hot) ** 2))
+
+def _mse_grad(logits, y_true):
+    probs   = softmax(logits)
+    n, c    = probs.shape
+    one_hot = np.zeros_like(probs)
+    one_hot[np.arange(n), y_true] = 1
+    diff    = probs - one_hot
+    grad    = np.zeros_like(probs)
+    for k in range(c):
+        dsm           = probs * (np.eye(c)[k] - probs[:, k:k+1])
+        grad[:, k]    = np.sum((2.0 / c) * diff * dsm, axis=1)
+    return grad / n
+
+LOSS_FN = {
+    "cross_entropy":     _cross_entropy,
+    "mse":               _mse,
+    "mean_squared_error": _mse,
+}
+LOSS_GRAD = {
+    "cross_entropy":     _cross_entropy_grad,
+    "mse":               _mse_grad,
+    "mean_squared_error": _mse_grad,
+}
+
+# ── also expose for external import (objective_functions.py consumers) ──
+cross_entropy      = _cross_entropy
+cross_entropy_grad = _cross_entropy_grad
+mse                = _mse
+mse_grad           = _mse_grad
 
 
 class NeuralNetwork:
 
-    def __init__(self, args):
-        self.args = args
-
-        hidden_sizes = getattr(args, "hidden_size", [128, 128, 128])
-        activations  = getattr(args, "activation",  ["relu", "relu", "relu"])
-        num_hidden   = getattr(args, "num_layers",   3)
-        weight_init  = getattr(args, "weight_init",
-                               getattr(args, "w_i", "xavier"))
-
-        if not isinstance(hidden_sizes, list): hidden_sizes = [hidden_sizes]
-        if not isinstance(activations,  list): activations  = [activations]
-
-        hidden_sizes = (hidden_sizes + [hidden_sizes[-1]] * num_hidden)[:num_hidden]
-        activations  = (activations  + [activations[-1]]  * num_hidden)[:num_hidden]
-
-        self.loss_name    = getattr(args, "loss",         "cross_entropy")
-        self.weight_decay = getattr(args, "weight_decay", 0.0)
-        self.loss_fn, self.loss_grad_fn = get_loss(self.loss_name)
-
-        opt = get_optimizer(args)
-
+    def __init__(self, cli_args):
+        self.args   = cli_args
         self.layers = []
-        in_dim = 28 * 28
+        self._build()
+        self.optimizer = OPTIMIZERS[cli_args.optimizer](
+            lr           = cli_args.learning_rate,
+            weight_decay = cli_args.weight_decay,
+        )
+        self.optimizer.init_state(self.layers)
 
-        for out_dim, act in zip(hidden_sizes, activations):
-            l = Layer(in_dim, out_dim, act, weight_init)
-            l.optimizer = opt
-            self.layers.append(l)
-            in_dim = out_dim
+    def _build(self):
+        a           = self.args
+        num_layers  = getattr(a, 'num_layers',  3)
+        hidden_size = getattr(a, 'hidden_size', [128] * (num_layers - 1))
+        activation  = getattr(a, 'activation',  'relu')
+        weight_init = getattr(a, 'weight_init', 'xavier')
 
-        out_layer = Layer(in_dim, 10, "none", weight_init)
-        out_layer.optimizer = opt
-        self.layers.append(out_layer)
+        # always normalise activation to a single string
+        if isinstance(activation, list):
+            activation = activation[0]
 
-    def forward(self, x):
-        out = np.asarray(x, dtype=np.float64)
-        if out.ndim == 1:
-            out = out.reshape(1, -1)
-        elif out.ndim > 2:
-            out = out.reshape(out.shape[0], -1)
-        for l in self.layers:
-            out = l.forward(out)
-        return out
+        # always normalise hidden_size to a list
+        if not isinstance(hidden_size, list):
+            hidden_size = [hidden_size] * (num_layers - 1)
 
-    def _to_onehot(self, y, B):
-        C   = self.layers[-1].out_dim
-        arr = np.asarray(y)
-        if arr.ndim == 2 and arr.shape[1] == C:
-            return arr.astype(np.float64)
-        labels = np.clip(arr.flatten()[:B].astype(int), 0, C - 1)
-        oh     = np.zeros((B, C), dtype=np.float64)
-        oh[np.arange(B), labels] = 1.0
-        return oh
+        num_hidden = num_layers - 1
+        if len(hidden_size) < num_hidden:
+            hidden_size = hidden_size + [hidden_size[-1]] * (num_hidden - len(hidden_size))
+        elif len(hidden_size) > num_hidden:
+            hidden_size = hidden_size[:num_hidden]
 
-    def compute_loss(self, logits, y):
-        if logits.ndim == 1: logits = logits.reshape(1, -1)
-        B    = logits.shape[0]
-        y_oh = self._to_onehot(y, B)
-        loss = self.loss_fn(logits, y_oh)
-        if self.weight_decay > 0:
-            l2    = sum(np.sum(l.W ** 2) for l in self.layers)
-            loss += (self.weight_decay / 2.0) * l2
-        return float(loss)
+        dims = [784] + hidden_size + [10]
+        for i in range(len(dims) - 1):
+            act = activation if i < len(dims) - 2 else None
+            self.layers.append(Layer(dims[i], dims[i+1], act, weight_init))
 
-    def backward(self, logits, y_true):
-        if logits.ndim == 1: logits = logits.reshape(1, -1)
-        B    = logits.shape[0]
-        y_oh = self._to_onehot(y_true, B)
+    def forward(self, X):
+        out = X
+        for layer in self.layers:
+            out = layer.forward(out)
+        return out  # raw logits
 
-        grad = self.loss_grad_fn(logits, y_oh)
+    def backward(self, y_true, y_pred):
+        loss_key = getattr(self.args, 'loss', 'cross_entropy')
+        delta    = LOSS_GRAD[loss_key](y_pred, y_true)
+        grads_w, grads_b = [], []
+        for layer in reversed(self.layers):
+            delta = layer.backward(delta)
+            grads_w.insert(0, layer.grad_W)
+            grads_b.insert(0, layer.grad_b)
+        return grads_w, grads_b
 
-        for l in reversed(self.layers):
-            grad = l.backward(grad)
+    def update_weights(self):
+        self.optimizer.step(self.layers)
 
-        # autograder does: gw, gb = model.backward(...)
-        # must return exactly 2 values - grad of first hidden layer
-        return self.layers[0].grad_W, self.layers[0].grad_b
+    def train(self, X_train, y_train, epochs, batch_size,
+              X_val=None, y_val=None, wandb_run=None):
+        n            = X_train.shape[0]
+        best_f1      = -1
+        best_weights = None
+        loss_key     = getattr(self.args, 'loss', 'cross_entropy')
 
-    def update(self, lr):
-        for l in self.layers:
-            l.update(lr, self.weight_decay)
+        for epoch in range(epochs):
+            idx              = np.random.permutation(n)
+            X_train, y_train = X_train[idx], y_train[idx]
+            epoch_loss       = 0.0
 
-    def predict(self, x):
-        return np.argmax(self.forward(x), axis=1)
+            for start in range(0, n, batch_size):
+                Xb         = X_train[start:start+batch_size]
+                yb         = y_train[start:start+batch_size]
+                logits     = self.forward(Xb)
+                epoch_loss += LOSS_FN[loss_key](logits, yb) * len(yb)
+                self.backward(yb, logits)
+                self.update_weights()
+
+            epoch_loss   /= n
+            train_metrics = self.evaluate(X_train, y_train)
+            log = {"epoch": epoch+1, "train_loss": epoch_loss,
+                   "train_acc": train_metrics["accuracy"]}
+
+            if X_val is not None:
+                val_metrics  = self.evaluate(X_val, y_val)
+                log.update({"val_loss": val_metrics["loss"],
+                             "val_acc":  val_metrics["accuracy"],
+                             "val_f1":   val_metrics["f1"]})
+                if val_metrics["f1"] > best_f1:
+                    best_f1      = val_metrics["f1"]
+                    best_weights = self.get_weights()
+
+            if wandb_run is not None:
+                wandb_run.log(log)
+
+            print(f"Epoch {epoch+1}/{epochs} | loss: {epoch_loss:.4f} "
+                  f"| train_acc: {train_metrics['accuracy']:.4f}", end="")
+            if X_val is not None:
+                print(f" | val_acc: {log['val_acc']:.4f}", end="")
+            print()
+
+        return best_weights
+
+    def evaluate(self, X, y):
+        loss_key = getattr(self.args, 'loss', 'cross_entropy')
+        logits   = self.forward(X)
+        loss     = LOSS_FN[loss_key](logits, y)
+        preds    = np.argmax(logits, axis=1)
+        return {
+            "loss":      loss,
+            "accuracy":  accuracy_score(y, preds),
+            "f1":        f1_score(y, preds, average="macro", zero_division=0),
+            "precision": precision_score(y, preds, average="macro", zero_division=0),
+            "recall":    recall_score(y, preds, average="macro", zero_division=0),
+            "logits":    logits,
+        }
 
     def get_weights(self):
-        w = {}
-        for i, l in enumerate(self.layers):
-            w[f"W{i}"] = l.W.copy()
-            w[f"b{i}"] = l.b.copy()
-        return w
+        return {f"W{i}": l.W.copy() for i, l in enumerate(self.layers)} | \
+               {f"b{i}": l.b.copy() for i, l in enumerate(self.layers)}
 
     def set_weights(self, weights):
-        if hasattr(weights, "layers") and hasattr(weights, "get_weights"):
-            weights = weights.get_weights()
-
         if isinstance(weights, np.ndarray):
             weights = weights.item() if weights.ndim == 0 else list(weights)
-            return self.set_weights(weights)
 
-        pairs = []
-
-        if isinstance(weights, dict):
-            i = 0
-            while True:
-                W = weights.get(f"W{i}", weights.get(f"w{i}", weights.get(f"w_{i}")))
-                b = weights.get(f"b{i}", weights.get(f"b_{i}"))
-                if W is None or b is None: break
-                pairs.append((np.asarray(W, np.float64),
-                               np.asarray(b, np.float64).reshape(1, -1)))
-                i += 1
-
-        elif isinstance(weights, list):
-            for item in weights:
-                if isinstance(item, dict):
-                    W = item.get("W", item.get("w"))
-                    b = item.get("b")
-                    if W is not None and b is not None:
-                        pairs.append((np.asarray(W, np.float64),
-                                       np.asarray(b, np.float64).reshape(1, -1)))
-
-        if not pairs:
-            print(f"WARNING: set_weights could not parse format {type(weights)}")
+        if isinstance(weights, (tuple, list)):
+            for i, layer in enumerate(self.layers):
+                if i >= len(weights): break
+                item = weights[i]
+                if isinstance(item, (tuple, list)) and len(item) == 2:
+                    layer.W = np.array(item[0]).copy()
+                    layer.b = np.array(item[1]).copy()
+                elif isinstance(item, dict):
+                    layer.W = item.get("W", item.get("w")).copy()
+                    layer.b = item["b"].copy()
             return
 
-        self._apply_pairs(pairs)
+        if isinstance(weights, dict):
+            for i, layer in enumerate(self.layers):
+                if f"W{i}" in weights:
+                    layer.W = weights[f"W{i}"].copy()
+                    layer.b = weights[f"b{i}"].copy()
+                elif str(i) in weights:
+                    layer.W = weights[str(i)]["W"].copy()
+                    layer.b = weights[str(i)]["b"].copy()
+                else:
+                    raise KeyError(f"Layer {i} not found. Keys: {list(weights.keys())}")
+            return
 
-    def _apply_pairs(self, pairs):
-        if len(pairs) == len(self.layers):
-            all_match = all(l.W.shape == W.shape
-                            for l, (W, b) in zip(self.layers, pairs))
-            if all_match:
-                for l, (W, b) in zip(self.layers, pairs):
-                    l.W      = W.copy()
-                    l.b      = b.copy()
-                    l.grad_W = np.zeros_like(W)
-                    l.grad_b = np.zeros_like(b)
-                return
-
-        opt = self.layers[0].optimizer
-        self.layers = []
-        n = len(pairs)
-        for i, (W, b) in enumerate(pairs):
-            act = "none" if i == n - 1 else "relu"
-            l   = Layer(W.shape[0], W.shape[1], act, "zeros")
-            l.W         = W.copy()
-            l.b         = b.copy()
-            l.grad_W    = np.zeros_like(W)
-            l.grad_b    = np.zeros_like(b)
-            l.optimizer = opt
-            self.layers.append(l)
+        print(f"WARNING: set_weights could not parse {type(weights)}")

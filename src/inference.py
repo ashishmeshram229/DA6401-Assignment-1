@@ -1,133 +1,110 @@
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-
 import argparse
 import json
-import numpy as np
-import os
 import sys
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import os
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ann.neural_network import NeuralNetwork
-from data_utils         import load_data
+from utils.data_loader import load_data
 
 
-SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Run inference on test set")
+
+    parser.add_argument("-d",   "--dataset",       type=str,   default="mnist",
+                        choices=["mnist", "fashion_mnist"])
+    parser.add_argument("-e",   "--epochs",        type=int,   default=20)
+    parser.add_argument("-b",   "--batch_size",    type=int,   default=32)
+    parser.add_argument("-l",   "--loss",          type=str,   default="cross_entropy",
+                        choices=["cross_entropy", "mse", "mean_squared_error"])
+    parser.add_argument("-o",   "--optimizer",     type=str,   default="rmsprop",
+                        choices=["sgd", "momentum", "nag", "rmsprop"])
+    parser.add_argument("-lr",  "--learning_rate", type=float, default=1e-3)
+    parser.add_argument("-wd",  "--weight_decay",  type=float, default=0.0001)
+    parser.add_argument("-nhl", "--num_layers",    type=int,   default=3)
+    parser.add_argument("-sz",  "--hidden_size",   type=int,   nargs="+", default=[128, 128, 128])
+    parser.add_argument("-a",   "--activation",    type=str,   nargs="+", default=["relu"],
+                        choices=["sigmoid", "tanh", "relu"])
+    parser.add_argument("-w_i", "--weight_init",   type=str,   default="xavier",
+                        choices=["random", "xavier"])
+    parser.add_argument("-w_p", "--wandb_project", type=str,   default="da6401_assignment1")
+    parser.add_argument("--wandb_entity",          type=str,   default=None)
+    parser.add_argument("--model_path",            type=str,   default="best_model.npy")
+    parser.add_argument("--config_path",           type=str,   default="best_config.json")
+
+    return parser.parse_args()
 
 
-def parse_arguments(args_list=None):
-    p = argparse.ArgumentParser()
-    p.add_argument("-d",   "--dataset",       type=str,   default="fashion_mnist",
-                   choices=["mnist", "fashion_mnist"])
-    p.add_argument("-e",   "--epochs",        type=int,   default=20)
-    p.add_argument("-b",   "--batch_size",    type=int,   default=32)
-    p.add_argument("-l",   "--loss",          type=str,   default="cross_entropy",
-                   choices=["mean_squared_error", "cross_entropy"])
-    p.add_argument("-o",   "--optimizer",     type=str,   default="rmsprop",
-                   choices=["sgd", "momentum", "nag", "rmsprop"])
-    p.add_argument("-lr",  "--learning_rate", type=float, default=0.001)
-    p.add_argument("-wd",  "--weight_decay",  type=float, default=0.0001)
-    p.add_argument("-nhl", "--num_layers",    type=int,   default=3)
-    p.add_argument("-sz",  "--hidden_size",   type=int,   nargs="+", default=[128, 128, 128])
-    p.add_argument("-a",   "--activation",    type=str,   nargs="+",
-                   default=["relu", "relu", "relu"],
-                   choices=["sigmoid", "tanh", "relu"])
-    p.add_argument("-w_i", "--weight_init",   type=str,   default="xavier",
-                   choices=["random", "xavier"])
-    p.add_argument("-w_p", "--wandb_project", type=str,   default="da6401_assignment_1")
-    p.add_argument("-wg",  "--wandb_group",   type=str,   default="general")
-    p.add_argument("--model_path",  type=str,
-                   default=os.path.join(SRC_DIR, "best_model.npy"))
-    p.add_argument("--config_path", type=str,
-                   default=os.path.join(SRC_DIR, "best_config.json"))
-    if args_list is not None:
-        return p.parse_args(args_list)
-    return p.parse_args()
+def load_config_into_args(args):
+    """
+    Override args with values from best_config.json so the model architecture
+    always matches what was saved — regardless of CLI defaults.
+    """
+    config_path = args.config_path
 
-parse_args = parse_arguments
+    # also look next to the model file if not found
+    if not os.path.exists(config_path):
+        config_path = os.path.join(
+            os.path.dirname(os.path.abspath(args.model_path)), "best_config.json"
+        )
 
-
-def _find_config(model_path, config_path):
-    candidates = [
-        config_path,
-        os.path.join(os.path.dirname(os.path.abspath(model_path)), "best_config.json"),
-        os.path.join(SRC_DIR, "best_config.json"),
-        "best_config.json",
-    ]
-    for c in candidates:
-        if c and os.path.exists(c):
-            return c
-    return None
-
-
-def load_model(model_path, config_path=None):
-    found_cfg  = _find_config(model_path, config_path)
-    model_args = parse_arguments([])
-
-    # apply CLI overrides if any
-    if len(sys.argv) > 1:
-        try:
-            cli = parse_arguments()
-            for k, v in vars(cli).items():
-                setattr(model_args, k, v)
-        except Exception:
-            pass
-
-    # override with saved config (controls architecture)
-    if found_cfg:
-        with open(found_cfg) as f:
+    if os.path.exists(config_path):
+        with open(config_path) as f:
             cfg = json.load(f)
-        for k, v in cfg.items():
-            setattr(model_args, k, v)
+        for key, val in cfg.items():
+            if hasattr(args, key):
+                setattr(args, key, val)
+        print(f"Loaded config from: {config_path}")
     else:
-        print("WARNING: best_config.json not found - using defaults")
+        print("WARNING: best_config.json not found — using CLI defaults. "
+              "Architecture may not match saved weights.")
 
-    # fix list fields after loading from json
-    if not isinstance(model_args.hidden_size, list):
-        model_args.hidden_size = [model_args.hidden_size] * model_args.num_layers
-    if not isinstance(model_args.activation, list):
-        model_args.activation = [model_args.activation] * model_args.num_layers
+    return args
 
-    n = max(1, model_args.num_layers)
-    model_args.hidden_size = (model_args.hidden_size + [model_args.hidden_size[-1]] * n)[:n]
-    model_args.activation  = (model_args.activation  + [model_args.activation[-1]]  * n)[:n]
 
-    model = NeuralNetwork(model_args)
-    model.args = model_args
+def main():
+    args = parse_arguments()
 
-    raw = np.load(model_path, allow_pickle=True)
-    if isinstance(raw, np.ndarray) and raw.ndim == 0:
-        weights = raw.item()
-    else:
-        weights = raw
+    # ── Load architecture from saved config ──────────────────────────────────
+    args = load_config_into_args(args)
 
+    # Normalise activation to single string
+    if isinstance(args.activation, list):
+        args.activation = args.activation[0]
+
+    # Normalise loss name
+    if args.loss == "mean_squared_error":
+        args.loss = "mse"
+
+    # Pad / trim hidden_size to match num_layers
+    if not isinstance(args.hidden_size, list):
+        args.hidden_size = [args.hidden_size] * args.num_layers
+    if len(args.hidden_size) < args.num_layers:
+        args.hidden_size = args.hidden_size + [args.hidden_size[-1]] * (args.num_layers - len(args.hidden_size))
+    elif len(args.hidden_size) > args.num_layers:
+        args.hidden_size = args.hidden_size[:args.num_layers]
+
+    print(f"Dataset  : {args.dataset}")
+    print(f"Layers   : {args.num_layers}  Hidden: {args.hidden_size}  Act: {args.activation}")
+
+    _, _, _, _, X_test, y_test = load_data(args.dataset)
+
+    model   = NeuralNetwork(args)
+    weights = np.load(args.model_path, allow_pickle=True).item()
     model.set_weights(weights)
-    return model
 
+    results = model.evaluate(X_test, y_test)
 
-def run_inference():
-    args  = parse_arguments()
-    model = load_model(args.model_path, args.config_path)
+    print(f"\nAccuracy  : {results['accuracy']:.4f}")
+    print(f"F1-Score  : {results['f1']:.4f}")
+    print(f"Precision : {results['precision']:.4f}")
+    print(f"Recall    : {results['recall']:.4f}")
+    print(f"Loss      : {results['loss']:.4f}")
 
-    dataset = getattr(model.args, "dataset", args.dataset)
-    _, _, _, _, x_test, y_test = load_data(dataset)
-
-    logits = model.forward(x_test)
-    preds  = np.argmax(logits, axis=1)
-
-    acc  = accuracy_score(y_test, preds)
-    prec = precision_score(y_test, preds, average="macro", zero_division=0)
-    rec  = recall_score(y_test,    preds, average="macro", zero_division=0)
-    f1   = f1_score(y_test,        preds, average="macro", zero_division=0)
-
-    print("\n=== inference results ===")
-    print(f"dataset   : {dataset}")
-    print(f"accuracy  : {acc:.4f}")
-    print(f"precision : {prec:.4f}")
-    print(f"recall    : {rec:.4f}")
-    print(f"f1 score  : {f1:.4f}")
-    return f1
+    return results
 
 
 if __name__ == "__main__":
-    run_inference()
+    main()

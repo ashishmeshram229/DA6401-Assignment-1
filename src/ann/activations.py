@@ -1,51 +1,57 @@
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+"""
+Activation Functions and Their Derivatives
+Implements: ReLU, Sigmoid, Tanh, Softmax
+"""
+
 import numpy as np
 
 
-def sigmoid(x):
-    x = np.clip(x, -500, 500)
-    return 1.0 / (1.0 + np.exp(-x))
+def relu(z):
+    return np.maximum(0, z)
 
-def sigmoid_deriv(x):
-    s = sigmoid(x)
-    return s * (1.0 - s)
+def relu_grad(z):
+    return (z > 0).astype(float)
 
+def sigmoid(z):
+    z = np.clip(z, -500, 500)
+    return 1.0 / (1.0 + np.exp(-z))
 
-def tanh_fn(x):
-    return np.tanh(x)
+def sigmoid_grad(z):
+    s = sigmoid(z)
+    return s * (1 - s)
 
-def tanh_deriv(x):
-    return 1.0 - np.tanh(x) ** 2
+def tanh(z):
+    return np.tanh(z)
 
+def tanh_grad(z):
+    return 1 - np.tanh(z) ** 2
 
-def relu(x):
-    return np.maximum(0.0, x)
-
-def relu_deriv(x):
-    return (x > 0).astype(np.float64)
-
-
-# identity for output layer - returns raw logits as assignment requires
-def none_fn(x):
-    return x.copy()
-
-def none_deriv(x):
-    return np.ones_like(x)
+def softmax(z):
+    z = z - np.max(z, axis=1, keepdims=True)
+    e = np.exp(z)
+    return e / np.sum(e, axis=1, keepdims=True)
 
 
-def softmax(x):
-    x = x - np.max(x, axis=1, keepdims=True)
-    e = np.exp(np.clip(x, -500, 500))
-    return e / (np.sum(e, axis=1, keepdims=True) + 1e-12)
-
-
-act_map = {
-    "sigmoid": (sigmoid,  sigmoid_deriv),
-    "tanh":    (tanh_fn,  tanh_deriv),
-    "relu":    (relu,     relu_deriv),
-    "none":    (none_fn,  none_deriv),
+ACT_FN = {
+    "relu":    relu,
+    "sigmoid": sigmoid,
+    "tanh":    tanh,
 }
 
+ACT_GRAD = {
+    "relu":    relu_grad,
+    "sigmoid": sigmoid_grad,
+    "tanh":    tanh_grad,
+}
+
+
+# kept for backward-compatibility with any code that calls get_activation()
 def get_activation(name):
-    if name not in act_map:
-        raise ValueError(f"unknown activation: {name}")
-    return act_map[name]
+    if name is None:
+        return (lambda x: x), (lambda x: np.ones_like(x))
+    if name not in ACT_FN:
+        raise ValueError(f"Unknown activation: {name}")
+    return ACT_FN[name], ACT_GRAD[name]

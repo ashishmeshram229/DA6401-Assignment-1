@@ -1,76 +1,93 @@
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
 
-
-# each optimizer has step(layer, lr, weight_decay) interface
+# optimizer classes and their state management with classes and methods
 
 class SGD:
-    def step(self, layer, lr, wd=0.0):
-        layer.W -= lr * (layer.grad_W + wd * layer.W)
-        layer.b -= lr * layer.grad_b
+    def __init__(self, lr, weight_decay=0.0, **kwargs):
+        self.lr = lr
+        self.wd = weight_decay
+
+    def init_state(self, layers):
+        pass
+
+    def step(self, layers):
+        for layer in layers:
+            layer.W -= self.lr * (layer.grad_W + self.wd * layer.W)
+            layer.b -= self.lr * layer.grad_b
 
 
 class Momentum:
-    def __init__(self, beta=0.9):
+    def __init__(self, lr, weight_decay=0.0, beta=0.9, **kwargs):
+        self.lr = lr
+        self.wd = weight_decay
         self.beta = beta
-        self.vW   = {}
-        self.vb   = {}
+        self.vW = []
+        self.vb = []
 
-    def step(self, layer, lr, wd=0.0):
-        lid = id(layer)
-        if lid not in self.vW:
-            self.vW[lid] = np.zeros_like(layer.W)
-            self.vb[lid] = np.zeros_like(layer.b)
-        gW = layer.grad_W + wd * layer.W
-        gb = layer.grad_b
-        self.vW[lid] = self.beta * self.vW[lid] + gW
-        self.vb[lid] = self.beta * self.vb[lid] + gb
-        layer.W -= lr * self.vW[lid]
-        layer.b -= lr * self.vb[lid]
+    def init_state(self, layers):
+        self.vW = [np.zeros_like(l.W) for l in layers]
+        self.vb = [np.zeros_like(l.b) for l in layers]
+
+    def step(self, layers):
+        for i, layer in enumerate(layers):
+            self.vW[i] = self.beta * self.vW[i] + self.lr * (layer.grad_W + self.wd * layer.W)
+            self.vb[i] = self.beta * self.vb[i] + self.lr * layer.grad_b
+            layer.W -= self.vW[i]
+            layer.b -= self.vb[i]
 
 
 class NAG:
-    def __init__(self, beta=0.9):
+    # nestrov acclerated grad
+    def __init__(self, lr, weight_decay=0.0, beta=0.9, **kwargs):
+        self.lr = lr
+        self.wd = weight_decay
         self.beta = beta
-        self.vW   = {}
-        self.vb   = {}
+        self.vW = []
+        self.vb = []
 
-    def step(self, layer, lr, wd=0.0):
-        lid = id(layer)
-        if lid not in self.vW:
-            self.vW[lid] = np.zeros_like(layer.W)
-            self.vb[lid] = np.zeros_like(layer.b)
-        gW = layer.grad_W + wd * layer.W
-        gb = layer.grad_b
-        self.vW[lid] = self.beta * self.vW[lid] + gW
-        self.vb[lid] = self.beta * self.vb[lid] + gb
-        layer.W -= lr * (self.beta * self.vW[lid] + gW)
-        layer.b -= lr * (self.beta * self.vb[lid] + gb)
+    def init_state(self, layers):
+        self.vW = [np.zeros_like(l.W) for l in layers]
+        self.vb = [np.zeros_like(l.b) for l in layers]
+
+    def step(self, layers):
+        for i, layer in enumerate(layers):
+            vW_prev = self.vW[i].copy()
+            vb_prev = self.vb[i].copy()
+            self.vW[i] = self.beta * self.vW[i] + self.lr * (layer.grad_W + self.wd * layer.W)
+            self.vb[i] = self.beta * self.vb[i] + self.lr * layer.grad_b
+            layer.W -= (1 + self.beta) * self.vW[i] - self.beta * vW_prev
+            layer.b -= (1 + self.beta) * self.vb[i] - self.beta * vb_prev
 
 
 class RMSProp:
-    def __init__(self, beta=0.9, eps=1e-8):
+    def __init__(self, lr, weight_decay=0.0, beta=0.9, eps=1e-8, **kwargs):
+        self.lr = lr
+        self.wd = weight_decay
         self.beta = beta
-        self.eps  = eps
-        self.sW   = {}
-        self.sb   = {}
+        self.eps = eps
+        self.sW = []
+        self.sb = []
 
-    def step(self, layer, lr, wd=0.0):
-        lid = id(layer)
-        if lid not in self.sW:
-            self.sW[lid] = np.zeros_like(layer.W)
-            self.sb[lid] = np.zeros_like(layer.b)
-        gW = layer.grad_W + wd * layer.W
-        gb = layer.grad_b
-        self.sW[lid] = self.beta * self.sW[lid] + (1 - self.beta) * gW ** 2
-        self.sb[lid] = self.beta * self.sb[lid] + (1 - self.beta) * gb ** 2
-        layer.W -= lr * gW / (np.sqrt(self.sW[lid]) + self.eps)
-        layer.b -= lr * gb / (np.sqrt(self.sb[lid]) + self.eps)
+    def init_state(self, layers):
+        self.sW = [np.zeros_like(l.W) for l in layers]
+        self.sb = [np.zeros_like(l.b) for l in layers]
+
+    def step(self, layers):
+        for i, layer in enumerate(layers):
+            gW = layer.grad_W + self.wd * layer.W
+            gb = layer.grad_b
+            self.sW[i] = self.beta * self.sW[i] + (1 - self.beta) * gW ** 2
+            self.sb[i] = self.beta * self.sb[i] + (1 - self.beta) * gb ** 2
+            layer.W -= self.lr * gW / (np.sqrt(self.sW[i]) + self.eps)
+            layer.b -= self.lr * gb / (np.sqrt(self.sb[i]) + self.eps)
 
 
-def get_optimizer(args):
-    name = getattr(args, "optimizer", "sgd")
-    if name == "sgd":       return SGD()
-    if name == "momentum":  return Momentum()
-    if name == "nag":       return NAG()
-    if name == "rmsprop":   return RMSProp()
-    raise ValueError(f"unknown optimizer: {name}")
+OPTIMIZERS = {
+    "sgd": SGD,
+    "momentum": Momentum,
+    "nag": NAG,
+    "rmsprop": RMSProp,
+}
