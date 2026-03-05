@@ -115,7 +115,7 @@ def train():
         _wlog({"epoch": ep, "train_loss": total/nb, "val_loss": vloss,
                "val_acc": vacc, "train_acc": tracc, "test_acc": tacc,
                "test_f1": tf1,
-               "dead_neuron_fraction": float(np.mean(model.layers[0].a == 0.0))})
+               })
 
         if tf1 > best_f1:
             best_f1 = tf1
