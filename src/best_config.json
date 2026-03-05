@@ -20,8 +20,8 @@
   "weight_init": "xavier",
   "wandb_project": "da6401_assignment_1",
   "wandb_group": "general",
-  "model_path": "src/best_model.npy",
-  "config_path": "src/best_config.json",
-  "best_test_f1": 0.9794340958052574,
-  "best_epoch": 8
+  "model_path": "best_model.npy",
+  "config_path": "best_config.json",
+  "best_test_f1": 0.9776282946515165,
+  "best_epoch": 13
 }

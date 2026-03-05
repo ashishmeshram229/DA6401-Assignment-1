@@ -35,6 +35,11 @@ def _wfinish():
     except Exception: pass
 
 
+# ── train.py lives at <repo>/src/train.py
+# So src/ dir = dirname of this file, regardless of cwd ───────────────────
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("-d",   "--dataset",       type=str,   default="mnist",
@@ -55,16 +60,21 @@ def parse_args():
                    choices=["random", "xavier", "zeros"])
     p.add_argument("-wp",  "--wandb_project", type=str,   default="da6401_assignment_1")
     p.add_argument("-wg",  "--wandb_group",   type=str,   default="general")
-    # Paths relative to repo root (train.py lives in src/, so ../src/ = src/)
-    p.add_argument("--model_path",  type=str, default="src/best_model.npy")
-    p.add_argument("--config_path", type=str, default="src/best_config.json")
+    # These paths are RELATIVE TO SRC_DIR (always resolves to src/)
+    p.add_argument("--model_path",  type=str, default="best_model.npy")
+    p.add_argument("--config_path", type=str, default="best_config.json")
     return p.parse_args()
 
 
 def train():
     args = parse_args()
 
-    # Fix hidden_size / activation to match num_layers-1 hidden layers
+    # Resolve save paths relative to src/ dir (where this file lives)
+    # So no matter where you run from, files always land in src/
+    model_path  = os.path.join(SRC_DIR, args.model_path)
+    config_path = os.path.join(SRC_DIR, args.config_path)
+
+    # Sync hidden_size / activation length to num_layers-1
     n_hidden = max(1, args.num_layers - 1)
     args.hidden_size = (args.hidden_size + [args.hidden_size[-1]] * n_hidden)[:n_hidden]
     args.activation  = (args.activation  + [args.activation[-1]]  * n_hidden)[:n_hidden]
@@ -82,12 +92,13 @@ def train():
     print(f"\nTraining | dataset={args.dataset} | opt={args.optimizer} | "
           f"lr={args.learning_rate} | epochs={args.epochs} | "
           f"arch=784→{args.hidden_size}→10")
+    print(f"Saving to: {model_path}")
 
     for ep in range(1, args.epochs + 1):
         total, nb = 0.0, 0
         for xb, yb in get_batches(x_train, y_train, args.batch_size, seed=42 + ep):
             logits = model.forward(xb)
-            loss   = model.compute_loss(logits, yb)   # integer labels
+            loss   = model.compute_loss(logits, yb)   # integer labels directly
             model.backward(logits, yb)
             _wlog({"first_layer_grad_norm": float(np.linalg.norm(model.layers[0].grad_W))})
             model.update(args.learning_rate)
@@ -100,29 +111,25 @@ def train():
         tp    = np.argmax(tl, axis=1)
         tf1   = f1_score(y_test, tp, average="macro", zero_division=0)
         tacc  = float(np.mean(tp == y_test))
-        tracc = float(np.mean(np.argmax(model.forward(x_train[:5000]),axis=1)==y_train[:5000]))
+        tracc = float(np.mean(
+            np.argmax(model.forward(x_train[:5000]), axis=1) == y_train[:5000]))
 
         print(f"Ep {ep:02d} | loss={total/nb:.4f} | val_acc={vacc:.4f} | "
               f"test_acc={tacc:.4f} | test_f1={tf1:.4f}")
 
         _wlog({"epoch": ep, "train_loss": total/nb, "val_loss": vloss,
-               "val_acc": vacc, "train_acc": tracc, "test_acc": tacc, "test_f1": tf1,
+               "val_acc": vacc, "train_acc": tracc, "test_acc": tacc,
+               "test_f1": tf1,
                "dead_neuron_fraction": float(np.mean(model.layers[0].a == 0.0))})
 
         if tf1 > best_f1:
-            best_f1 = tf1
+            best_f1      = tf1
             best_weights = model.get_weights()
             best_cfg["best_test_f1"] = float(best_f1)
             best_cfg["best_epoch"]   = ep
             print(f"  ✓ New best F1: {best_f1:.4f}")
 
-    # ── Save paths: always relative to repo root ──────────────────────────
-    # train.py is at src/train.py → repo root is one level up from __file__
-    repo_root   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    model_path  = os.path.join(repo_root, args.model_path)
-    config_path = os.path.join(repo_root, args.config_path)
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-
+    # Save — paths always resolve to src/ regardless of cwd
     np.save(model_path, best_weights, allow_pickle=True)
     cfg_out = {k: list(v) if isinstance(v, (list, np.ndarray)) else v
                for k, v in best_cfg.items()}
@@ -130,8 +137,8 @@ def train():
         json.dump(cfg_out, f, indent=2)
 
     print(f"\nBest Test F1 : {best_f1:.4f}")
-    print(f"Saved → {model_path}")
-    print(f"Saved → {config_path}")
+    print(f"Saved model  → {model_path}")
+    print(f"Saved config → {config_path}")
     _wfinish()
 
 
