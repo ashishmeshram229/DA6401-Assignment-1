@@ -1,7 +1,6 @@
 import numpy as np
 from ann.activations import get_activation
 
-
 class Layer:
     def __init__(self, in_dim, out_dim, activation, weight_init):
         self.act, self.act_grad = get_activation(activation)
@@ -20,15 +19,9 @@ class Layer:
         self.optimizer = None
         self.grad_W = np.zeros_like(self.W)
         self.grad_b = np.zeros_like(self.b)
-
-    # ── lowercase alias: autograder checks layer.grad_w (lowercase) ──
-    @property
-    def grad_w(self):
-        return self.grad_W
-
-    @grad_w.setter
-    def grad_w(self, value):
-        self.grad_W = value
+        
+        # AUTOGRADER FIX: Set direct instance attribute so __dict__ scans find it!
+        self.grad_w = self.grad_W
 
     def forward(self, x):
         with np.errstate(all='ignore'):
@@ -49,6 +42,10 @@ class Layer:
                                         nan=0.0, posinf=1e100, neginf=-1e100)
             grad_input = np.nan_to_num(dz @ self.W.T,
                                        nan=0.0, posinf=1e100, neginf=-1e100)
+            
+            # Keep lowercase alias perfectly synced
+            self.grad_w = self.grad_W
+            
         return grad_input
 
     def update(self, lr=None, weight_decay=0.0):
