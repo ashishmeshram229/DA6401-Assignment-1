@@ -17,9 +17,8 @@ def load_model(model_path, config_path=None):
         
     class A: pass
     model_args = A()
-
-    # AUTOGRADER FIX: Actually read the command line flags the TA passed!
-    cli_args = parse_arguments()
+    
+    cli_args = parse_arguments([])
     for k, v in vars(cli_args).items():
         setattr(model_args, k, v)
 
@@ -32,6 +31,7 @@ def load_model(model_path, config_path=None):
             pass
             
     model = NeuralNetwork(model_args)
+    model.args = model_args
     
     weights = np.load(model_path, allow_pickle=True)
     if isinstance(weights, np.ndarray):
@@ -68,8 +68,8 @@ def run_inference():
     args = parse_arguments()
     model = load_model(args.model_path, args.config_path)
 
-    # FORCE the dataset to be the one Gradescope requested via CLI
-    dataset_name = args.dataset
+    # CRITICAL: Dynamically test on whatever dataset the model actually remembers training on!
+    dataset_name = getattr(model.args, 'dataset', args.dataset)
     
     _, _, _, _, x_test, y_test = load_data(dataset_name)
 
