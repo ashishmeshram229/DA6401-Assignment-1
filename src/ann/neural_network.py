@@ -39,7 +39,6 @@ class NeuralNetwork:
             layer.optimizer=get_optimizer(args)
 
             self.layers.append(layer)
-
             in_dim=out_dim
 
         output_layer=Layer(in_dim,10,"none",weight_init)
@@ -47,9 +46,9 @@ class NeuralNetwork:
 
         self.layers.append(output_layer)
 
-    # -------------------------------------------------
+    # ---------------------------------------------------------
     # forward
-    # -------------------------------------------------
+    # ---------------------------------------------------------
 
     def forward(self,x):
 
@@ -66,9 +65,9 @@ class NeuralNetwork:
 
         return out
 
-    # -------------------------------------------------
+    # ---------------------------------------------------------
     # helpers
-    # -------------------------------------------------
+    # ---------------------------------------------------------
 
     def _labels(self,y,B,C):
 
@@ -93,9 +92,9 @@ class NeuralNetwork:
         e=np.exp(x-np.max(x,axis=1,keepdims=True))
         return e/(np.sum(e,axis=1,keepdims=True)+1e-12)
 
-    # -------------------------------------------------
+    # ---------------------------------------------------------
     # loss
-    # -------------------------------------------------
+    # ---------------------------------------------------------
 
     def compute_loss(self,logits,y):
 
@@ -119,9 +118,9 @@ class NeuralNetwork:
 
         return float(loss)
 
-    # -------------------------------------------------
+    # ---------------------------------------------------------
     # backward
-    # -------------------------------------------------
+    # ---------------------------------------------------------
 
     def backward(self,logits,y_true):
 
@@ -147,18 +146,18 @@ class NeuralNetwork:
 
         return self.layers[0].grad_W,self.layers[0].grad_b
 
-    # -------------------------------------------------
+    # ---------------------------------------------------------
     # update
-    # -------------------------------------------------
+    # ---------------------------------------------------------
 
     def update(self,lr):
 
         for layer in self.layers:
             layer.update(lr,self.weight_decay)
 
-    # -------------------------------------------------
+    # ---------------------------------------------------------
     # save weights
-    # -------------------------------------------------
+    # ---------------------------------------------------------
 
     def get_weights(self):
 
@@ -173,93 +172,47 @@ class NeuralNetwork:
 
         return weights
 
-    # -------------------------------------------------
-    # load weights (robust)
-    # -------------------------------------------------
+    # ---------------------------------------------------------
+    # universal weight loader
+    # ---------------------------------------------------------
 
     def set_weights(self,weights):
 
-        # unwrap numpy object
+        # unwrap numpy container
         if isinstance(weights,np.ndarray):
 
             if weights.dtype==object:
                 weights=weights.item()
+
             else:
                 weights=weights.tolist()
 
         pairs=[]
 
-        # --------------------------
-        # list formats
-        # --------------------------
+        def extract(obj):
 
-        if isinstance(weights,list):
+            if isinstance(obj,dict):
 
-            for item in weights:
+                if "W" in obj and "b" in obj:
+                    pairs.append((np.asarray(obj["W"]),np.asarray(obj["b"])))
 
-                if isinstance(item,dict):
+                for v in obj.values():
+                    extract(v)
 
-                    W=np.asarray(item["W"],dtype=np.float64)
-                    b=np.asarray(item["b"],dtype=np.float64)
+            elif isinstance(obj,(list,tuple)):
 
-                    pairs.append((W,b))
+                if len(obj)==2 and isinstance(obj[0],np.ndarray):
+                    pairs.append((np.asarray(obj[0]),np.asarray(obj[1])))
+                else:
+                    for v in obj:
+                        extract(v)
 
-                elif isinstance(item,(list,tuple)) and len(item)==2:
-
-                    W=np.asarray(item[0],dtype=np.float64)
-                    b=np.asarray(item[1],dtype=np.float64)
-
-                    pairs.append((W,b))
-
-        # --------------------------
-        # dict formats
-        # --------------------------
-
-        elif isinstance(weights,dict):
-
-            # {0:{W,b}}
-            if all(isinstance(v,dict) for v in weights.values()):
-
-                for k in sorted(weights.keys(),key=lambda x:int(x)):
-
-                    W=np.asarray(weights[k]["W"],dtype=np.float64)
-                    b=np.asarray(weights[k]["b"],dtype=np.float64)
-
-                    pairs.append((W,b))
-
-            else:
-
-                i=0
-
-                while True:
-
-                    Wk=f"W{i}"
-                    bk=f"b{i}"
-
-                    Lwk=f"layer{i}_W"
-                    Lbk=f"layer{i}_b"
-
-                    if Wk in weights and bk in weights:
-
-                        W=np.asarray(weights[Wk],dtype=np.float64)
-                        b=np.asarray(weights[bk],dtype=np.float64)
-
-                    elif Lwk in weights and Lbk in weights:
-
-                        W=np.asarray(weights[Lwk],dtype=np.float64)
-                        b=np.asarray(weights[Lbk],dtype=np.float64)
-
-                    else:
-                        break
-
-                    pairs.append((W,b))
-                    i+=1
+        extract(weights)
 
         if len(pairs)==0:
             raise ValueError("Unsupported weight format")
 
-        # rebuild architecture
-
+        # rebuild network
         self.layers=[]
 
         for i,(W,b) in enumerate(pairs):
