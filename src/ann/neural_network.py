@@ -175,58 +175,28 @@ class NeuralNetwork:
     # ---------------------------------------------------------
     # universal weight loader
     # ---------------------------------------------------------
+def set_weights(self, weights):
 
-    def set_weights(self,weights):
+    
 
-        # unwrap numpy container
-        if isinstance(weights,np.ndarray):
+    if isinstance(weights, np.ndarray):
+        weights = weights.item()
 
-            if weights.dtype==object:
-                weights=weights.item()
+    for i, layer in enumerate(self.layers):
 
-            else:
-                weights=weights.tolist()
+        if f"W{i}" in weights:
+            layer.W = weights[f"W{i}"].copy()
+            layer.b = weights[f"b{i}"].copy()
 
-        pairs=[]
+        elif str(i) in weights:
+            layer.W = weights[str(i)]["W"].copy()
+            layer.b = weights[str(i)]["b"].copy()
 
-        def extract(obj):
+        elif i in weights:
+            layer.W = weights[i]["W"].copy()
+            layer.b = weights[i]["b"].copy()
 
-            if isinstance(obj,dict):
-
-                if "W" in obj and "b" in obj:
-                    pairs.append((np.asarray(obj["W"]),np.asarray(obj["b"])))
-
-                for v in obj.values():
-                    extract(v)
-
-            elif isinstance(obj,(list,tuple)):
-
-                if len(obj)==2 and isinstance(obj[0],np.ndarray):
-                    pairs.append((np.asarray(obj[0]),np.asarray(obj[1])))
-                else:
-                    for v in obj:
-                        extract(v)
-
-        extract(weights)
-
-        if len(pairs)==0:
-            raise ValueError("Unsupported weight format")
-
-        # rebuild network
-        self.layers=[]
-
-        for i,(W,b) in enumerate(pairs):
-
-            act="none" if i==len(pairs)-1 else "relu"
-
-            layer=Layer(W.shape[0],W.shape[1],act,"zeros")
-
-            layer.W=W.copy()
-            layer.b=b.copy()
-
-            layer.grad_W=np.zeros_like(W)
-            layer.grad_b=np.zeros_like(b)
-
-            layer.optimizer=get_optimizer(self.args)
-
-            self.layers.append(layer)
+        else:
+            raise KeyError(
+                f"Layer {i} not found in weight dict. Keys: {list(weights.keys())}"
+            )
