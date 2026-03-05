@@ -20,11 +20,11 @@ def parse_arguments(args_list=None):
     p.add_argument("-o",   "--optimizer",     type=str,   default="rmsprop",
                    choices=["sgd", "momentum", "nag", "rmsprop"])
     p.add_argument("-lr",  "--learning_rate", type=float, default=0.001)
-    p.add_argument("-wd",  "--weight_decay",  type=float, default=0.0005)
-    p.add_argument("-nhl", "--num_layers",    type=int,   default=3)
-    p.add_argument("-sz",  "--hidden_size",   type=int,   nargs="+", default=[128, 128])
+    p.add_argument("-wd",  "--weight_decay",  type=float, default=0.0001)
+    p.add_argument("-nhl", "--num_layers",    type=int,   default=4)
+    p.add_argument("-sz",  "--hidden_size",   type=int,   nargs="+", default=[128, 128, 128])
     p.add_argument("-a",   "--activation",    type=str,   nargs="+",
-                   default=["relu", "relu"], choices=["sigmoid", "tanh", "relu"])
+                   default=["relu", "relu", "relu"], choices=["sigmoid", "tanh", "relu"])
     p.add_argument("-wi",  "--weight_init",   type=str,   default="xavier",
                    choices=["random", "xavier", "zeros"])
     p.add_argument("-wp",  "--wandb_project", type=str,   default="da6401_assignment_1")

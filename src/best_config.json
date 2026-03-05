@@ -1,6 +1,6 @@
 {
   "dataset": "mnist",
-  "epochs": 25,
+  "epochs": 20,
   "batch_size": 32,
   "loss": "cross_entropy",
   "optimizer": "rmsprop",
@@ -20,8 +20,8 @@
   "weight_init": "xavier",
   "wandb_project": "da6401_assignment_1",
   "wandb_group": "general",
-  "model_path": "best_model.npy",
-  "config_path": "best_config.json",
-  "best_test_f1": 0.9781578397312742,
-  "best_epoch": 25
+  "model_path": "src/best_model.npy",
+  "config_path": "src/best_config.json",
+  "best_test_f1": 0.9794340958052574,
+  "best_epoch": 8
 }
