@@ -97,7 +97,7 @@ class NeuralNetwork:
             grad = l.backward(grad)
 
         # return list of (grad_W, grad_b) from last layer to first
-        return self.layers[0].grad_W, self.layers[0].grad_b
+        return [(l.grad_W, l.grad_b) for l in reversed(self.layers)]
 
     # ── update ──────────────────────────────────────────────────────
 

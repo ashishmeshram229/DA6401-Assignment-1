@@ -44,7 +44,6 @@ class Layer:
     def forward(self, x):
         self._input = np.asarray(x, dtype=np.float64)
         self._z     = self._input @ self.W + self.b
-        self._z     = np.clip(self._z, -500, 500) 
         return self.act(self._z)
 
     def backward(self, da):
@@ -54,7 +53,7 @@ class Layer:
 
         # multiply by activation derivative
         dz = da * self.act_grad(self._z)
-        dz = np.clip(dz, -5, 5) 
+
         # NOTE: loss_grad_fn does NOT divide by m
         # layer.backward divides by m exactly once here
         self.grad_W = (self._input.T @ dz) / m
