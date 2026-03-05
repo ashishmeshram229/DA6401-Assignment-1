@@ -22,6 +22,6 @@
   "wandb_group": "general",
   "model_path": "best_model.npy",
   "config_path": "best_config.json",
-  "best_test_f1": 0.9800189925765392,
-  "best_epoch": 14
+  "best_test_f1": 0.9778668649194072,
+  "best_epoch": 6
 }

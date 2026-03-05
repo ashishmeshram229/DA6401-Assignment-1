@@ -7,20 +7,21 @@ from ann.optimizers import get_optimizer
 class NeuralNetwork:
 
     def __init__(self, args):
+
         self.args = args
 
-        raw_sizes = getattr(args, "hidden_size", [128, 128, 128])
-        raw_acts = getattr(args, "activation", ["relu", "relu", "relu"])
+        hidden_sizes = getattr(args, "hidden_size", [128, 128, 128])
+        activations = getattr(args, "activation", ["relu", "relu", "relu"])
         num_hidden = getattr(args, "num_layers", 3)
 
-        if not isinstance(raw_sizes, list):
-            raw_sizes = [raw_sizes]
+        if not isinstance(hidden_sizes, list):
+            hidden_sizes = [hidden_sizes]
 
-        if not isinstance(raw_acts, list):
-            raw_acts = [raw_acts]
+        if not isinstance(activations, list):
+            activations = [activations]
 
-        hidden_sizes = (raw_sizes + [raw_sizes[-1]] * num_hidden)[:num_hidden]
-        activations = (raw_acts + [raw_acts[-1]] * num_hidden)[:num_hidden]
+        hidden_sizes = (hidden_sizes + [hidden_sizes[-1]] * num_hidden)[:num_hidden]
+        activations = (activations + [activations[-1]] * num_hidden)[:num_hidden]
 
         self.loss_name = getattr(args, "loss", "cross_entropy")
         self.loss_fn, self.loss_grad_fn = get_loss(self.loss_name)
@@ -42,11 +43,12 @@ class NeuralNetwork:
         output_layer.optimizer = get_optimizer(args)
         self.layers.append(output_layer)
 
-    # ------------------------------------------------
-    # Forward pass
-    # ------------------------------------------------
+    # ---------------------------------------------------------
+    # Forward
+    # ---------------------------------------------------------
 
     def forward(self, x):
+
         out = np.asarray(x, dtype=np.float64)
 
         if out.ndim == 1:
@@ -58,13 +60,14 @@ class NeuralNetwork:
         for layer in self.layers:
             out = layer.forward(out)
 
-        return out  # logits
+        return out   # logits
 
-    # ------------------------------------------------
-    # Helper functions
-    # ------------------------------------------------
+    # ---------------------------------------------------------
+    # Helpers
+    # ---------------------------------------------------------
 
     def _labels(self, y, B, C):
+
         arr = np.asarray(y)
 
         if arr.ndim == 2 and arr.shape[1] == C:
@@ -75,19 +78,22 @@ class NeuralNetwork:
         return np.clip(arr[:B].astype(int), 0, C - 1)
 
     def _one_hot(self, labels, C):
+
         oh = np.zeros((len(labels), C), dtype=np.float64)
         oh[np.arange(len(labels)), labels] = 1.0
         return oh
 
     def _softmax(self, x):
+
         e = np.exp(x - np.max(x, axis=1, keepdims=True))
         return e / (np.sum(e, axis=1, keepdims=True) + 1e-12)
 
-    # ------------------------------------------------
-    # Loss computation
-    # ------------------------------------------------
+    # ---------------------------------------------------------
+    # Loss
+    # ---------------------------------------------------------
 
     def compute_loss(self, logits, y):
+
         if logits.ndim == 1:
             logits = logits.reshape(1, -1)
 
@@ -97,18 +103,27 @@ class NeuralNetwork:
         y_oh = self._one_hot(labels, C)
 
         if self.loss_name == "cross_entropy":
+
             probs = self._softmax(logits)
-            loss = -np.mean(np.sum(y_oh * np.log(probs + 1e-9), axis=1))
+
+            loss = -np.mean(
+                np.sum(y_oh * np.log(probs + 1e-9), axis=1)
+            )
+
         else:
-            loss = np.mean(np.sum((logits - y_oh) ** 2, axis=1))
+
+            loss = np.mean(
+                np.sum((logits - y_oh) ** 2, axis=1)
+            )
 
         return float(loss)
 
-    # ------------------------------------------------
-    # Backpropagation
-    # ------------------------------------------------
+    # ---------------------------------------------------------
+    # Backward
+    # ---------------------------------------------------------
 
     def backward(self, logits, y_true):
+
         if logits.ndim == 1:
             logits = logits.reshape(1, -1)
 
@@ -123,6 +138,7 @@ class NeuralNetwork:
             grad = np.zeros_like(logits)
 
         for layer in reversed(self.layers):
+
             grad = layer.backward(grad)
 
             if grad is None:
@@ -130,22 +146,25 @@ class NeuralNetwork:
 
         return self.layers[0].grad_W, self.layers[0].grad_b
 
-    # ------------------------------------------------
-    # Update weights
-    # ------------------------------------------------
+    # ---------------------------------------------------------
+    # Update
+    # ---------------------------------------------------------
 
     def update(self, lr):
+
         for layer in self.layers:
             layer.update(lr, self.weight_decay)
 
-    # ------------------------------------------------
+    # ---------------------------------------------------------
     # Save weights
-    # ------------------------------------------------
+    # ---------------------------------------------------------
 
     def get_weights(self):
+
         weights = {}
 
         for i, layer in enumerate(self.layers):
+
             weights[i] = {
                 "W": layer.W.copy(),
                 "b": layer.b.copy()
@@ -153,43 +172,78 @@ class NeuralNetwork:
 
         return weights
 
-    # ------------------------------------------------
+    # ---------------------------------------------------------
     # Load weights (AUTOGRADER SAFE)
-    # ------------------------------------------------
+    # ---------------------------------------------------------
 
     def set_weights(self, weights):
 
         if isinstance(weights, np.ndarray):
-            weights = weights.item()
+
+            if weights.dtype == object:
+                weights = weights.item()
+            else:
+                weights = weights.tolist()
 
         pairs = []
 
-        if isinstance(weights, dict):
+        # CASE 1: list format
+        if isinstance(weights, list):
 
+            for item in weights:
+
+                if isinstance(item, dict):
+
+                    W = np.asarray(item["W"], dtype=np.float64)
+                    b = np.asarray(item["b"], dtype=np.float64)
+
+                    pairs.append((W, b))
+
+                elif isinstance(item, (list, tuple)) and len(item) == 2:
+
+                    W = np.asarray(item[0], dtype=np.float64)
+                    b = np.asarray(item[1], dtype=np.float64)
+
+                    pairs.append((W, b))
+
+        # CASE 2: dict format
+        elif isinstance(weights, dict):
+
+            # indexed dict {0:{W,b}}
             if all(isinstance(v, dict) for v in weights.values()):
+
                 for k in sorted(weights.keys(), key=lambda x: int(x)):
+
                     w = weights[k]
+
                     W = np.asarray(w["W"], dtype=np.float64)
                     b = np.asarray(w["b"], dtype=np.float64)
+
                     pairs.append((W, b))
 
             else:
+
+                # flat dict {"W0","b0"} or {"layer0_W"}
+
                 i = 0
+
                 while True:
 
-                    W_key = f"W{i}"
-                    b_key = f"b{i}"
+                    Wk = f"W{i}"
+                    bk = f"b{i}"
 
-                    layerW_key = f"layer{i}_W"
-                    layerb_key = f"layer{i}_b"
+                    Lwk = f"layer{i}_W"
+                    Lbk = f"layer{i}_b"
 
-                    if W_key in weights and b_key in weights:
-                        W = np.asarray(weights[W_key], dtype=np.float64)
-                        b = np.asarray(weights[b_key], dtype=np.float64)
+                    if Wk in weights and bk in weights:
 
-                    elif layerW_key in weights and layerb_key in weights:
-                        W = np.asarray(weights[layerW_key], dtype=np.float64)
-                        b = np.asarray(weights[layerb_key], dtype=np.float64)
+                        W = np.asarray(weights[Wk], dtype=np.float64)
+                        b = np.asarray(weights[bk], dtype=np.float64)
+
+                    elif Lwk in weights and Lbk in weights:
+
+                        W = np.asarray(weights[Lwk], dtype=np.float64)
+                        b = np.asarray(weights[Lbk], dtype=np.float64)
 
                     else:
                         break
@@ -197,17 +251,11 @@ class NeuralNetwork:
                     pairs.append((W, b))
                     i += 1
 
-        elif isinstance(weights, list):
-
-            for w in weights:
-                W = np.asarray(w["W"], dtype=np.float64)
-                b = np.asarray(w["b"], dtype=np.float64)
-                pairs.append((W, b))
-
         if len(pairs) == 0:
             raise ValueError("Unsupported weight format")
 
-        # rebuild architecture from weights
+        # rebuild architecture dynamically
+
         self.layers = []
 
         for i, (W, b) in enumerate(pairs):
