@@ -233,6 +233,7 @@ Logged metrics include:
 
 **Ashish Meshram**
 M.Tech · IIT Madras
+DA25M016
 [GitHub](https://github.com/ashishmeshram229/DA6401-Assignment-1) · [W&B](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras)
 
 ---
