@@ -4,8 +4,6 @@ import sys
 import os
 import numpy as np
 
-# Add src/ to path — works regardless of where python is invoked from
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ann.neural_network import NeuralNetwork
 from utils.data_loader  import load_data

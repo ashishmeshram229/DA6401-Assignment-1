@@ -1,61 +1,14 @@
 """
-Neural Network — loss functions embedded directly, zero external file dependencies.
+Neural Network — imports cleanly from objective_functions.py
 """
-import os, sys
-# Guarantee src/ is always on path regardless of working directory
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
-from ann.neural_layer import Layer
-from ann.activations  import ACT_FN, ACT_GRAD, softmax
-from ann.optimizers   import OPTIMIZERS
-from sklearn.metrics  import (accuracy_score, f1_score,
-                              precision_score, recall_score)
+from ann.neural_layer        import Layer
+from ann.optimizers          import OPTIMIZERS
+from ann.objective_functions import LOSS_FN, LOSS_GRAD
+from sklearn.metrics import (accuracy_score, f1_score,
+                             precision_score, recall_score)
 
-# ── Loss functions embedded here so objective_functions.py is optional ────────
-
-def _cross_entropy(logits, y_true):
-    probs = softmax(logits)
-    n     = y_true.shape[0]
-    return float(np.mean(-np.log(probs[np.arange(n), y_true.astype(int)] + 1e-9)))
-
-def _cross_entropy_grad(logits, y_true):
-    probs = softmax(logits)
-    n     = y_true.shape[0]
-    probs[np.arange(n), y_true.astype(int)] -= 1.0
-    return probs / n
-
-def _mse(logits, y_true):
-    probs   = softmax(logits)
-    n, c    = probs.shape
-    one_hot = np.zeros_like(probs)
-    one_hot[np.arange(n), y_true.astype(int)] = 1.0
-    return float(np.mean((probs - one_hot) ** 2))
-
-def _mse_grad(logits, y_true):
-    probs   = softmax(logits)
-    n, c    = probs.shape
-    one_hot = np.zeros_like(probs)
-    one_hot[np.arange(n), y_true.astype(int)] = 1.0
-    diff    = probs - one_hot
-    grad    = np.zeros_like(probs)
-    for k in range(c):
-        dsm        = probs * (np.eye(c)[k] - probs[:, k:k+1])
-        grad[:, k] = np.sum((2.0 / c) * diff * dsm, axis=1)
-    return grad / n
-
-LOSS_FN = {
-    "cross_entropy":      _cross_entropy,
-    "mse":                _mse,
-    "mean_squared_error": _mse,
-}
-LOSS_GRAD = {
-    "cross_entropy":      _cross_entropy_grad,
-    "mse":                _mse_grad,
-    "mean_squared_error": _mse_grad,
-}
-
-# ── NeuralNetwork class ───────────────────────────────────────────────────────
 
 class NeuralNetwork:
 

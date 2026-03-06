@@ -5,9 +5,7 @@ import os
 import numpy as np
 import uuid
 
-# Add src/ to path so "ann" and "utils" packages are always found
-# Works whether you run: python3 train.py  OR  python3 src/train.py
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 from ann.neural_network import NeuralNetwork
 from utils.data_loader  import load_data

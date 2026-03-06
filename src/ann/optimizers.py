@@ -1,3 +1,4 @@
+
 """
 Optimizers: SGD, Momentum, NAG, RMSProp
 Each class has init_state(layers) and step(layers) methods.
