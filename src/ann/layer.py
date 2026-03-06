@@ -1,6 +1,8 @@
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
-from ann.activations import act_func, act_gradeint
+from ann.activations import act_func, act_gradient
 
 
 class Layer:
@@ -58,7 +60,7 @@ class Layer:
         delta = np.asarray(delta, dtype=np.float64)
 
         if self.activation is not None: # If there's an activation function, we need to apply the chain rule to compute the gradient w.r.t. pre-activation values
-            delta = delta * act_gradeint[self.activation](self._z)
+            delta = delta * act_gradient[self.activation](self._z)
 
         self.grad_W = self._input.T @ delta
         self.grad_b = np.sum(delta, axis=0, keepdims=True) # Gradient w.r.t. biases is the sum of deltas across the batch

@@ -1,4 +1,5 @@
-
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 
 
@@ -47,7 +48,7 @@ act_func = {
     "tanh":    tanh,
 }
 
-act_gradeint = {
+act_gradient = {
     "relu":    relu_grad,
     "sigmoid": sigmoid_grad,
     "tanh":    tanh_grad,
@@ -63,4 +64,4 @@ def get_activation(name):
     if name not in act_func:
         raise ValueError(f"Unknown activation: {name}")
     
-    return act_func[name], act_gradeint[name]
+    return act_func[name], act_gradient[name]

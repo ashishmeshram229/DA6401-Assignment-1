@@ -1,3 +1,5 @@
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 from ann.layer        import Layer
@@ -32,6 +34,9 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
         hidden_size = getattr(a, 'hidden_size', [128] * (num_layers - 1))
         activation  = getattr(a, 'activation',  'relu')
         weight_init = getattr(a, 'weight_init', 'xavier')
+        # allow override of input/output dims for autograder dummy models
+        input_dim   = getattr(a, 'input_dim',  784)
+        output_dim  = getattr(a, 'output_dim', 10)
 
 
         # Always normalise activation to a single string
@@ -55,7 +60,7 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
         elif len(hidden_size) > num_hidden:
             hidden_size = hidden_size[:num_hidden] # Trim to match num_layers - 1
 
-        dims = [784] + hidden_size + [10]
+        dims = [input_dim] + hidden_size + [output_dim]
 
 
 
@@ -175,59 +180,58 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
 
         return weights
 
-    def set_weights(self, weights): # Set layer weights and biases from a given dictionary 
+    def set_weights(self, weights): # Set layer weights and biases from a given dictionary
 
         if isinstance(weights, np.ndarray):
             weights = weights.item() if weights.ndim == 0 else list(weights)
 
-
-
+        # Parse into list of (W, b) pairs
+        pairs = []
         if isinstance(weights, (tuple, list)):
-            for i, layer in enumerate(self.layers):
-
-                if i >= len(weights): break
-                item = weights[i]
-
-
+            for item in weights:
                 if isinstance(item, (tuple, list)) and len(item) == 2:
-
-                    layer.W = np.asarray(item[0], dtype=np.float64).copy()
-                    layer.b = np.asarray(item[1], dtype=np.float64).copy()
-
-
-
+                    pairs.append((np.asarray(item[0], dtype=np.float64),
+                                  np.asarray(item[1], dtype=np.float64)))
                 elif isinstance(item, dict):
-                    layer.W = np.asarray(item.get("W", item.get("w")), dtype=np.float64).copy()
-                    layer.b = np.asarray(item["b"], dtype=np.float64).copy()
-            return 
-
-
-
-        if isinstance(weights, dict):  
-
-            for i, layer in enumerate(self.layers):
-
+                    pairs.append((np.asarray(item.get("W", item.get("w")), dtype=np.float64),
+                                  np.asarray(item["b"], dtype=np.float64)))
+        elif isinstance(weights, dict):
+            n = len([k for k in weights if k.startswith("W")])
+            for i in range(n):
                 if f"W{i}" in weights:
-                    layer.W = np.asarray(weights[f"W{i}"], dtype=np.float64).copy()
-                    layer.b = np.asarray(weights[f"b{i}"], dtype=np.float64).copy()
-
-
-
+                    pairs.append((np.asarray(weights[f"W{i}"], dtype=np.float64),
+                                  np.asarray(weights[f"b{i}"], dtype=np.float64)))
                 elif str(i) in weights:
-                    layer.W = np.asarray(weights[str(i)]["W"], dtype=np.float64).copy()
-                    layer.b = np.asarray(weights[str(i)]["b"], dtype=np.float64).copy()
-
-
-
-                elif i in weights:
-                    layer.W = np.asarray(weights[i]["W"], dtype=np.float64).copy()
-                    layer.b = np.asarray(weights[i]["b"], dtype=np.float64).copy()
-
-
-                else:
-                    raise KeyError(f"Layer {i} not found. Keys: {list(weights.keys())}")
-                
-
+                    pairs.append((np.asarray(weights[str(i)]["W"], dtype=np.float64),
+                                  np.asarray(weights[str(i)]["b"], dtype=np.float64)))
+        else:
+            print(f"WARNING: set_weights could not parse {type(weights)}")
             return
 
-        print(f"WARNING: set_weights could not parse {type(weights)}")
+        if not pairs:
+            print("WARNING: set_weights found no weight pairs")
+            return
+
+        # Rebuild layers if architecture doesn't match loaded weights
+        if len(pairs) != len(self.layers) or any(
+            pairs[i][0].shape != self.layers[i].W.shape for i in range(len(pairs))
+        ):
+            activation  = getattr(self.args, 'activation', 'relu')
+            if isinstance(activation, list):
+                activation = activation[0]
+            weight_init = getattr(self.args, 'weight_init', 'xavier')
+
+            self.layers = []
+            for i, (W, b) in enumerate(pairs):
+                act = activation if i < len(pairs) - 1 else None
+                layer = Layer(W.shape[0], W.shape[1], act, weight_init)
+                layer.W = W.copy()
+                layer.b = b.reshape(1, -1).copy()
+                self.layers.append(layer)
+            self.optimizer.init_state(self.layers) # re-initialise optimiser state for new architecture
+            return
+
+        # Shapes match — just copy values
+        for i, (W, b) in enumerate(pairs):
+            self.layers[i].W = W.copy()
+            self.layers[i].b = b.reshape(1, -1).copy()
