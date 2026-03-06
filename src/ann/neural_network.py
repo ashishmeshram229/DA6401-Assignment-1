@@ -1,8 +1,8 @@
 
 import numpy as np
-from ann.neural_layer        import Layer
+from ann.layer        import Layer
 from ann.optimizers          import optimiser
-from ann.objective_functions import loss_func, loss_gradient
+from ann.losses import loss_func, loss_gradient
 from sklearn.metrics import (accuracy_score, f1_score,
                              precision_score, recall_score)
 
@@ -204,7 +204,7 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
 
 
         if isinstance(weights, dict):  
-            
+
             for i, layer in enumerate(self.layers):
 
                 if f"W{i}" in weights:
