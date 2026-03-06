@@ -106,10 +106,11 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
         best_f1, best_weights = -1, None
 
         for epoch in range(epochs): # Shuffle training data at the start of each epoch
- 
+
             idx              = np.random.permutation(n)
             X_train, y_train = X_train[idx], y_train[idx]
             epoch_loss       = 0.0
+            correct          = 0  # track correct predictions across batches — avoids re-running full forward pass after epoch
 
             for start in range(0, n, batch_size):
 
@@ -119,16 +120,18 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
                 logits       = self.forward(Xb)
 
                 epoch_loss  += loss_func[loss_key](logits, yb) * len(yb)
+                correct     += np.sum(np.argmax(logits, axis=1) == yb)  # accumulate correct predictions
 
                 self.backward(yb, logits)
                 self.update_weights()
 
 
-            epoch_loss    /= n
-            train_metrics  = self.evaluate(X_train, y_train)
+            epoch_loss /= n
+            train_acc   = correct / n  # computed from batch logits — no extra forward pass needed
+
             log = {"epoch":      epoch + 1,
                    "train_loss": epoch_loss,
-                   "train_acc":  train_metrics["accuracy"]}
+                   "train_acc":  train_acc}
 
 
             if X_val is not None: # Evaluate on validation set and log metrics (also used for model selection based on best F1 score)
@@ -137,7 +140,6 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
                 log.update({"val_loss": val_metrics["loss"],
                              "val_acc":  val_metrics["accuracy"],
                              "val_f1":   val_metrics["f1"]})
-                
 
 
                 if val_metrics["f1"] > best_f1:
@@ -148,7 +150,7 @@ class NeuralNetwork: # A simple feedforward neural network with configurable arc
                 wandb_run.log(log)
 
             print(f"Epoch {epoch+1}/{epochs} | loss: {epoch_loss:.4f} "
-                  f"| train_acc: {train_metrics['accuracy']:.4f}", end="")
+                  f"| train_acc: {train_acc:.4f}", end="")
             if X_val is not None:
                 print(f" | val_acc: {log['val_acc']:.4f}", end="")
             print()
