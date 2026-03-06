@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![NumPy](https://img.shields.io/badge/NumPy-Only-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
 [![wandb](https://img.shields.io/badge/Weights_%26_Biases-Tracked-FFBE00?style=for-the-badge&logo=weightsandbiases&logoColor=black)](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)
-[![IIT Madras](https://img.shields.io/badge/IIT%20Madras-DA6401-8B0000?style=for-the-badge)]
+![IIT Madras](https://img.shields.io/badge/IIT%20Madras-DA6401-8B0000?style=for-the-badge)
 
 **A fully NumPy-based neural network implementation — no PyTorch, no TensorFlow.**
 
