@@ -4,12 +4,12 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![NumPy](https://img.shields.io/badge/NumPy-Only-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
-[![wandb](https://img.shields.io/badge/Weights_%26_Biases-Tracked-FFBE00?style=for-the-badge&logo=weightsandbiases&logoColor=black)](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw)
-[![IIT Madras](https://img.shields.io/badge/IIT%20Madras-DA6401-8B0000?style=for-the-badge)](https://courses.iitm.ac.in)
+[![wandb](https://img.shields.io/badge/Weights_%26_Biases-Tracked-FFBE00?style=for-the-badge&logo=weightsandbiases&logoColor=black)](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)
+![IIT Madras](https://img.shields.io/badge/IIT%20Madras-DA6401-8B0000?style=for-the-badge)
 
 **A fully NumPy-based neural network implementation — no PyTorch, no TensorFlow.**
 
-[📊 W&B Report](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw/edit?draftId=VmlldzoxNjEwNTcwNA==) · [💻 GitHub Repo](https://github.com/ashishmeshram229/DA6401-Assignment-1)
+[📊 W&B Report](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld) · [💻 GitHub Repo](https://github.com/ashishmeshram229/DA6401-Assignment-1)
 
 </div>
 
@@ -55,9 +55,9 @@ da6401_assignment_1/
 │   ├── ann/
 │   │   ├── __init__.py              # Package init — adds src/ to sys.path
 │   │   ├── activations.py           # ReLU, Sigmoid, Tanh, Softmax
-│   │   ├── neural_layer.py          # Single fully-connected layer (forward + backward)
+│   │   ├── layer.py                 # Single fully-connected layer (forward + backward)
 │   │   ├── neural_network.py        # Full MLP model (train, evaluate, get/set weights)
-│   │   ├── objective_functions.py   # Cross-entropy and MSE losses + gradients
+│   │   ├── losses.py                # Cross-entropy and MSE losses + gradients
 │   │   └── optimizers.py            # SGD, Momentum, NAG, RMSProp
 │   ├── utils/
 │   │   └── data_loader.py           # MNIST / Fashion-MNIST loading + preprocessing
@@ -230,7 +230,7 @@ Logged metrics include:
 
 ## Author
 
-**Ashish Meshram**
+**Ashish Meshram (DA25M016)**
 M.Tech · IIT Madras
 [GitHub](https://github.com/ashishmeshram229/DA6401-Assignment-1) · [W&B](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)
 
