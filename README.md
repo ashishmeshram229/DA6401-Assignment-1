@@ -207,7 +207,7 @@ python3 grad_check.py
 
 All training runs are tracked on Weights & Biases.
 
-📊 **[View Full W&B Report →](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw/edit?draftId=VmlldzoxNjEwNTcwNA==)**
+📊 **[View Full W&B Report →](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)**
 
 Logged metrics include:
 - `train_loss`, `train_acc` per epoch
