@@ -1,60 +1,67 @@
-import os, sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-"""
-Single fully-connected layer with forward and backward passes.
-"""
 import numpy as np
-from ann.activations import ACT_FN, ACT_GRAD
+from ann.activations import act_func, act_gradeint
 
 
 class Layer:
-    def __init__(self, in_dim, out_dim, activation, weight_init):
+    def __init__(self, in_dim, out_dim, activation, weight_init): # activation can be None for output layer (e.g. softmax is applied separately in loss)
         self.activation = activation
+
         self._init_weights(in_dim, out_dim, weight_init)
 
-        # Pre-initialise gradients to zeros so autograder can read them
-        # even before the first backward pass (must NOT be None)
+       
         self.grad_W = np.zeros((in_dim, out_dim), dtype=np.float64)
+
         self.grad_b = np.zeros((1,      out_dim), dtype=np.float64)
 
         self._input = None
         self._z     = None
 
-    # ── lowercase alias: autograder checks layer.grad_w ──────────────────────
+
+
     @property
-    def grad_w(self):
-        return self.grad_W
+    def grad_w(self): 
+        return self.grad_W 
+
+
 
     @grad_w.setter
     def grad_w(self, v):
         self.grad_W = v
 
-    def _init_weights(self, in_dim, out_dim, method):
+    def _init_weights(self, in_dim, out_dim, method): # weight initialization method: "xavier" or "random"
+
         if method == "xavier":
             limit  = np.sqrt(6.0 / (in_dim + out_dim))
             self.W = np.random.uniform(-limit, limit,
                                        (in_dim, out_dim)).astype(np.float64)
+            
         else:   # random
             self.W = (np.random.randn(in_dim, out_dim) * 0.01).astype(np.float64)
+
         self.b = np.zeros((1, out_dim), dtype=np.float64)
 
     def forward(self, x):
-        # Cast to float64 — prevents overflow RuntimeWarnings when input is float32
+
+        # Store input and pre-activation values for use in backward pass
         self._input = np.asarray(x, dtype=np.float64)
         self._z     = self._input @ self.W + self.b
+
         if self.activation is None:
             return self._z
-        return ACT_FN[self.activation](self._z)
+        
+
+        return act_func[self.activation](self._z)
 
     def backward(self, delta):
-        """
-        delta : gradient w.r.t. this layer's post-activation output.
-        Division by batch-size is done ONCE inside the loss gradient — NOT here.
-        """
+       
         delta = np.asarray(delta, dtype=np.float64)
-        if self.activation is not None:
-            delta = delta * ACT_GRAD[self.activation](self._z)
+
+        if self.activation is not None: # If there's an activation function, we need to apply the chain rule to compute the gradient w.r.t. pre-activation values
+            delta = delta * act_gradeint[self.activation](self._z)
+
         self.grad_W = self._input.T @ delta
-        self.grad_b = np.sum(delta, axis=0, keepdims=True)
-        return delta @ self.W.T
+        self.grad_b = np.sum(delta, axis=0, keepdims=True) # Gradient w.r.t. biases is the sum of deltas across the batch
+
+
+        return delta @ self.W.T 
