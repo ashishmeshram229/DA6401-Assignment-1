@@ -234,7 +234,7 @@ Logged metrics include:
 **Ashish Meshram**
 M.Tech · IIT Madras
 DA25M016
-[GitHub](https://github.com/ashishmeshram229/DA6401-Assignment-1) · [W&B]([https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld))
+[GitHub](https://github.com/ashishmeshram229/DA6401-Assignment-1) · [W&B](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)
 
 ---
 
