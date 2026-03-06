@@ -55,9 +55,9 @@ da6401_assignment_1/
 │   ├── ann/
 │   │   ├── __init__.py              # Package init — adds src/ to sys.path
 │   │   ├── activations.py           # ReLU, Sigmoid, Tanh, Softmax
-│   │   ├── layer.py          # Single fully-connected layer (forward + backward)
+│   │   ├── neural_layer.py          # Single fully-connected layer (forward + backward)
 │   │   ├── neural_network.py        # Full MLP model (train, evaluate, get/set weights)
-│   │   ├── losses.py   # Cross-entropy and MSE losses + gradients
+│   │   ├── objective_functions.py   # Cross-entropy and MSE losses + gradients
 │   │   └── optimizers.py            # SGD, Momentum, NAG, RMSProp
 │   ├── utils/
 │   │   └── data_loader.py           # MNIST / Fashion-MNIST loading + preprocessing
@@ -66,7 +66,6 @@ da6401_assignment_1/
 │   ├── grad_check.py                # Numerical gradient verification
 │   ├── best_model.npy               # Saved best model weights
 │   └── best_config.json             # Saved best hyperparameter config
-├── notebooks/                       # Jupyter notebooks for exploration
 ├── README.md
 └── requirements.txt
 ```
@@ -208,7 +207,7 @@ python3 grad_check.py
 
 All training runs are tracked on Weights & Biases.
 
-📊 **[View Full W&B Report →](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw/edit?draftId=VmlldzoxNjEwNTcwNA==)**
+📊 **[View Full W&B Report →](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)**
 
 Logged metrics include:
 - `train_loss`, `train_acc` per epoch
@@ -233,7 +232,7 @@ Logged metrics include:
 
 **Ashish Meshram**
 M.Tech · IIT Madras
-[GitHub](https://github.com/ashishmeshram229/DA6401-Assignment-1) · [W&B](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras)
+[GitHub](https://github.com/ashishmeshram229/DA6401-Assignment-1) · [W&B](https://wandb.ai/ashishmeshram229-indian-institute-of-technology-madras/da6401_assignment_1/reports/DA6401-Assignment-1-Multi-Layer-Perceptron--VmlldzoxNjA5MTI2Mw?accessToken=05w3uydugj3p158y5nda30qyluq4q1g3abpx7v3rwzq0c0gnwzz5u84g1wduxyld)
 
 ---
 
