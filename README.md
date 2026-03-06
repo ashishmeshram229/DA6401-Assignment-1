@@ -65,8 +65,7 @@ da6401_assignment_1/
 │   ├── inference.py                 # Inference script — load model and evaluate
 │   ├── grad_check.py                # Numerical gradient verification
 │   ├── best_model.npy               # Saved best model weights
-│   └── best_config.json             # Saved best hyperparameter config
-├── notebooks/                       # Jupyter notebooks for exploration
+│   └── best_config.json             # Saved best hyperparameter config                     
 ├── README.md
 └── requirements.txt
 ```
